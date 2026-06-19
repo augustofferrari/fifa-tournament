@@ -14,6 +14,7 @@ import {
   MatchResultModal,
   StandingsTable,
   TournamentAwardsSection,
+  TournamentSummarySection,
   TournamentMatches,
   TournamentPhaseActions,
   startKnockoutOnlyTournament,
@@ -195,6 +196,20 @@ export function TournamentDetailPage() {
     }
   }
 
+  async function handleOpenTvMode() {
+    if (!tournament) {
+      return
+    }
+
+    setError(null)
+
+    try {
+      await window.api.windows.openTvMode(tournament.id)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    }
+  }
+
   async function handleToggleResultsUnlocked() {
     if (!tournament) {
       return
@@ -265,6 +280,13 @@ export function TournamentDetailPage() {
         <Link className="btn btn--ghost" to="/tournaments">
           Back to Tournaments
         </Link>
+        <button
+          className="btn btn--ghost"
+          type="button"
+          onClick={() => void handleOpenTvMode()}
+        >
+          Open TV Mode
+        </button>
         {tournament.status === 'finished' && (
           <button
             className="btn btn--ghost"
@@ -401,6 +423,8 @@ export function TournamentDetailPage() {
           refreshTrigger={matches}
         />
       )}
+
+      {id && <TournamentSummarySection tournamentId={id} refreshTrigger={matches} />}
 
       {matches.length > 0 &&
         id &&

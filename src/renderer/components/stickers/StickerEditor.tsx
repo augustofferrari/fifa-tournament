@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
+import { StickerTier, type PlayerStickerTierInfo } from '@shared/types/sticker-tier'
 import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
 import { captureStickerPreviewPng } from './capture-sticker-preview'
 import { StickerPreview, type StickerPreviewData } from './StickerPreview'
+import { StickerTierBadge } from './StickerTierBadge'
+import { formatStickerWinRate } from './sticker-stats-utils'
 
 export interface StickerEditorValues {
   playerId: string
@@ -26,11 +29,21 @@ export const emptyStickerEditorValues: StickerEditorValues = {
 
 const POSITION_OPTIONS = ['GK', 'DF', 'MF', 'FW', 'ST', 'CM', 'CB', 'LB', 'RB', 'LW', 'RW']
 
+const EMPTY_TIER_INFO: PlayerStickerTierInfo = {
+  playerId: '',
+  tier: StickerTier.BRONZE,
+  historicalRank: null,
+  tournamentsWon: 0,
+  goalsFor: 0,
+  winRate: 0,
+}
+
 interface StickerEditorProps {
   players: Player[]
   values: StickerEditorValues
+  playerTierInfo?: PlayerStickerTierInfo
   onChange: (values: StickerEditorValues) => void
-  onExportSuccess?: (message: string) => void
+  onExportSuccess?: (message: string, sticker: Sticker) => void
   onExportError?: (message: string) => void
   lockPlayer?: boolean
   exportButtonLabel?: string
@@ -57,6 +70,7 @@ function parseRating(value: string): number | null {
 function buildPreviewData(
   players: Player[],
   values: StickerEditorValues,
+  playerTierInfo: PlayerStickerTierInfo,
 ): StickerPreviewData {
   const selectedPlayer = players.find((player) => player.id === values.playerId)
 
@@ -68,6 +82,12 @@ function buildPreviewData(
     rating: parseRating(values.rating),
     position: values.position,
     theme: values.theme,
+    tier: playerTierInfo.tier,
+    stats: {
+      tournamentsWon: playerTierInfo.tournamentsWon,
+      goalsFor: playerTierInfo.goalsFor,
+      winRate: playerTierInfo.winRate,
+    },
   }
 }
 
@@ -100,6 +120,7 @@ export function playerToStickerEditorValues(
 export function StickerEditor({
   players,
   values,
+  playerTierInfo: initialTierInfo = EMPTY_TIER_INFO,
   onChange,
   onExportSuccess,
   onExportError,
@@ -110,9 +131,48 @@ export function StickerEditor({
 }: StickerEditorProps) {
   const previewRef = useRef<HTMLElement>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [playerTierInfo, setPlayerTierInfo] = useState(initialTierInfo)
+  const [isLoadingTier, setIsLoadingTier] = useState(false)
+
+  useEffect(() => {
+    setPlayerTierInfo(initialTierInfo)
+  }, [initialTierInfo])
+
+  useEffect(() => {
+    if (lockPlayer || !values.playerId.trim()) {
+      return
+    }
+
+    let cancelled = false
+
+    async function loadTier() {
+      setIsLoadingTier(true)
+
+      try {
+        const tierInfo = await window.api.stickers.getPlayerTier(values.playerId)
+        if (!cancelled) {
+          setPlayerTierInfo(tierInfo)
+        }
+      } catch {
+        if (!cancelled) {
+          setPlayerTierInfo({ ...EMPTY_TIER_INFO, playerId: values.playerId })
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingTier(false)
+        }
+      }
+    }
+
+    void loadTier()
+
+    return () => {
+      cancelled = true
+    }
+  }, [lockPlayer, values.playerId])
 
   const selectedPlayer = players.find((player) => player.id === values.playerId)
-  const previewData = buildPreviewData(players, values)
+  const previewData = buildPreviewData(players, values, playerTierInfo)
   const canExport = Boolean(values.playerId.trim() && values.theme.trim())
 
   function updateValues(partial: Partial<StickerEditorValues>) {
@@ -147,7 +207,10 @@ export function StickerEditor({
         position: values.position.trim() || null,
       })
 
-      onExportSuccess?.(`Sticker PNG exported successfully (${result.generatedImagePath}).`)
+      onExportSuccess?.(
+        `Sticker PNG exported successfully (${result.generatedImagePath}).`,
+        result.sticker,
+      )
     } catch (error) {
       onExportError?.(getErrorMessage(error))
     } finally {
@@ -195,6 +258,39 @@ export function StickerEditor({
                 <div className="sticker-editor__player-team">{selectedPlayer.teamName}</div>
               )}
             </div>
+          </div>
+        )}
+
+        {values.playerId && (
+          <div className="sticker-editor__performance card">
+            <div className="sticker-editor__performance-header">
+              <h3 className="sticker-editor__performance-title">Performance tier</h3>
+              <StickerTierBadge tier={playerTierInfo.tier} variant="editor" />
+            </div>
+            {isLoadingTier ? (
+              <p className="sticker-editor__performance-loading">Loading stats…</p>
+            ) : (
+              <dl className="sticker-editor__stats">
+                <div className="sticker-editor__stat">
+                  <dt>Titles won</dt>
+                  <dd>{playerTierInfo.tournamentsWon}</dd>
+                </div>
+                <div className="sticker-editor__stat">
+                  <dt>Goals</dt>
+                  <dd>{playerTierInfo.goalsFor}</dd>
+                </div>
+                <div className="sticker-editor__stat">
+                  <dt>Win rate</dt>
+                  <dd>{formatStickerWinRate(playerTierInfo.winRate)}</dd>
+                </div>
+                {playerTierInfo.historicalRank !== null && (
+                  <div className="sticker-editor__stat">
+                    <dt>Historical rank</dt>
+                    <dd>#{playerTierInfo.historicalRank}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
           </div>
         )}
 
@@ -271,6 +367,9 @@ export function StickerEditor({
 
       <div className="sticker-editor__preview-panel">
         <h2 className="sticker-editor__title">Live Preview</h2>
+        <p className="sticker-editor__preview-note">
+          Tier styling and historical stats are included in the exported PNG.
+        </p>
         <StickerPreview ref={previewRef} data={previewData} />
         <button
           className="btn btn--primary"

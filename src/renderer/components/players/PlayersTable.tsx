@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { Player } from '@shared/types/player'
 import { PlayerPhoto } from './PlayerPhoto'
 
@@ -26,7 +27,11 @@ export function PlayersTable({ players, onEdit, onDelete }: PlayersTableProps) {
               <td>
                 <PlayerPhoto photoPath={player.photoPath} alt={player.name} size="sm" />
               </td>
-              <td className="table__primary">{player.name}</td>
+              <td className="table__primary">
+                <Link className="table__link" to={`/players/${player.id}`}>
+                  {player.name}
+                </Link>
+              </td>
               <td>{player.nickname ?? '—'}</td>
               <td>{player.teamName ?? '—'}</td>
               <td className="table__actions">

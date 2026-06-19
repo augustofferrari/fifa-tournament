@@ -1,7 +1,11 @@
+import { Link } from 'react-router-dom'
 import type { PlayerHistoricalStats } from '@shared/types/historical-stats'
+import type { PlayerStreaks } from '@shared/types/player-streaks'
+import { getEmptyPlayerStreakDisplay, toPlayerStreakDisplay } from '@renderer/components/players/PlayerStreakStats'
 
 interface HistoricalRankingTableProps {
   rows: PlayerHistoricalStats[]
+  streaksByPlayerId: Map<string, PlayerStreaks>
 }
 
 function formatWinRate(winRate: number): string {
@@ -36,7 +40,7 @@ function getTopRowClass(position: number): string | undefined {
   return undefined
 }
 
-export function HistoricalRankingTable({ rows }: HistoricalRankingTableProps) {
+export function HistoricalRankingTable({ rows, streaksByPlayerId }: HistoricalRankingTableProps) {
   return (
     <div className="table-wrap card table-wrap--scroll">
       <table className="table ranking-table">
@@ -55,17 +59,27 @@ export function HistoricalRankingTable({ rows }: HistoricalRankingTableProps) {
             <th>GD</th>
             <th>Pts</th>
             <th>Win rate</th>
+            <th>Win str</th>
+            <th>Best win</th>
+            <th>Unbeaten</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => {
             const position = index + 1
             const topRowClass = getTopRowClass(position)
+            const streaks = streaksByPlayerId.has(row.playerId)
+              ? toPlayerStreakDisplay(streaksByPlayerId.get(row.playerId)!)
+              : getEmptyPlayerStreakDisplay()
 
             return (
               <tr key={row.playerId} className={topRowClass}>
                 <td className="ranking-table__pos">{position}</td>
-                <td className="table__primary">{row.playerName}</td>
+                <td className="table__primary">
+                  <Link className="table__link" to={`/players/${row.playerId}`}>
+                    {row.playerName}
+                  </Link>
+                </td>
                 <td>{row.tournamentsPlayed}</td>
                 <td>{row.tournamentsWon}</td>
                 <td>{row.matchesPlayed}</td>
@@ -77,6 +91,9 @@ export function HistoricalRankingTable({ rows }: HistoricalRankingTableProps) {
                 <td>{formatGoalDifference(row.goalDifference)}</td>
                 <td>{row.points}</td>
                 <td>{formatWinRate(row.winRate)}</td>
+                <td>{streaks.currentWinStreak}</td>
+                <td>{streaks.bestWinStreak}</td>
+                <td>{streaks.currentUnbeatenStreak}</td>
               </tr>
             )
           })}

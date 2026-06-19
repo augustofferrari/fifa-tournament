@@ -1,5 +1,6 @@
 export const IPC_CHANNELS = {
   APP_PING: 'app:ping',
+  APP_RESET_ALL_DATA: 'app:resetAllData',
   PLAYERS_CREATE: 'players:create',
   PLAYERS_UPDATE: 'players:update',
   PLAYERS_DELETE: 'players:delete',
@@ -23,6 +24,7 @@ export const IPC_CHANNELS = {
   TOURNAMENTS_GET_STANDINGS: 'tournaments:getStandings',
   TOURNAMENTS_GET_GROUP_STANDINGS: 'tournaments:getGroupStandings',
   TOURNAMENTS_GET_AWARDS: 'tournaments:getAwards',
+  TOURNAMENTS_GET_NARRATIVE: 'tournaments:getNarrative',
   TOURNAMENTS_SET_RESULTS_UNLOCKED: 'tournaments:setResultsUnlocked',
   MATCHES_GENERATE_FIXTURE: 'matches:generateFixture',
   MATCHES_LIST: 'matches:list',
@@ -34,8 +36,13 @@ export const IPC_CHANNELS = {
   STICKERS_LIST: 'stickers:list',
   STICKERS_EXPORT_PNG: 'stickers:exportPng',
   STICKERS_GET_IMAGE_URL: 'stickers:getImageUrl',
+  STICKERS_GET_PLAYER_TIERS: 'stickers:getPlayerTiers',
+  STICKERS_GET_PLAYER_TIER: 'stickers:getPlayerTier',
   STATS_GET_HISTORICAL_RANKING: 'stats:getHistoricalRanking',
   STATS_GET_HEAD_TO_HEAD: 'stats:getHeadToHead',
+  STATS_GET_PLAYER_STREAKS: 'stats:getPlayerStreaks',
+  STATS_GET_ALL_PLAYER_STREAKS: 'stats:getAllPlayerStreaks',
+  WINDOWS_OPEN_TV_MODE: 'windows:openTvMode',
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

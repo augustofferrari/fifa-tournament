@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiError } from '@shared/ipc/errors'
 import type { PlayerHistoricalStats } from '@shared/types/historical-stats'
+import type { PlayerStreaks } from '@shared/types/player-streaks'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { HistoricalRankingTable } from '@renderer/components/ranking'
 
@@ -22,15 +23,25 @@ function hasPlayedMatches(rows: PlayerHistoricalStats[]): boolean {
 
 export function HistoricalRankingPage() {
   const [ranking, setRanking] = useState<PlayerHistoricalStats[]>([])
+  const [streaks, setStreaks] = useState<PlayerStreaks[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const streaksByPlayerId = useMemo(
+    () => new Map(streaks.map((entry) => [entry.playerId, entry])),
+    [streaks],
+  )
 
   const loadRanking = useCallback(async () => {
     setError(null)
 
     try {
-      const data = await window.api.stats.getHistoricalRanking()
-      setRanking(data)
+      const [rankingData, streakData] = await Promise.all([
+        window.api.stats.getHistoricalRanking(),
+        window.api.stats.getAllPlayerStreaks(),
+      ])
+      setRanking(rankingData)
+      setStreaks(streakData)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -60,7 +71,7 @@ export function HistoricalRankingPage() {
           No played matches yet. Record match results in a tournament to build the ranking.
         </div>
       ) : (
-        <HistoricalRankingTable rows={ranking} />
+        <HistoricalRankingTable rows={ranking} streaksByPlayerId={streaksByPlayerId} />
       )}
     </section>
   )

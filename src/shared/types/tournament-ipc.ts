@@ -101,6 +101,12 @@ export interface GetTournamentAwardsRequest {
 
 export type GetTournamentAwardsResponse = import('./tournament-awards').TournamentAwards
 
+export interface GetTournamentNarrativeRequest {
+  tournamentId: string
+}
+
+export type GetTournamentNarrativeResponse = import('./tournament-narrative').TournamentNarrative
+
 export interface SetTournamentResultsUnlockedRequest {
   tournamentId: string
   resultsUnlocked: boolean

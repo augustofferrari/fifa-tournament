@@ -30,3 +30,9 @@ export interface SaveExportedStickerInput {
   rating?: number | null
   position?: string | null
 }
+
+export interface ListStickersOptions {
+  playerId?: string
+  theme?: string
+  position?: string
+}

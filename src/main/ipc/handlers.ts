@@ -6,6 +6,8 @@ import { registerPlayerHandlers } from './players.handlers'
 import { registerStatsHandlers } from './stats.handlers'
 import { registerStickerHandlers } from './stickers.handlers'
 import { registerTournamentHandlers } from './tournaments.handlers'
+import { registerWindowHandlers } from './windows.handlers'
+import { registerAppHandlers } from './app.handlers'
 import { runIpcHandler } from './utils'
 
 export function registerIpcHandlers(): void {
@@ -13,9 +15,11 @@ export function registerIpcHandlers(): void {
     runIpcHandler<PingResponse>(() => 'pong'),
   )
 
+  registerAppHandlers()
   registerPlayerHandlers()
   registerTournamentHandlers()
   registerMatchHandlers()
   registerStickerHandlers()
   registerStatsHandlers()
+  registerWindowHandlers()
 }

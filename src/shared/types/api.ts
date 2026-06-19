@@ -16,16 +16,19 @@ import type { MatchesNamespace } from './matches-api'
 import type { StatsNamespace } from './stats-api'
 import type { StickersNamespace } from './stickers-api'
 import type { TournamentsNamespace } from './tournaments-api'
+import type { WindowsNamespace } from './windows-api'
 
 export type PingResponse = 'pong'
 
 export interface AppNamespace {
   platform: Platform
   ping(): Promise<PingResponse>
+  resetAllData(): Promise<void>
 }
 
 export interface ElectronApi {
   app: AppNamespace
+  windows: WindowsNamespace
   players: PlayersNamespace
   tournaments: TournamentsNamespace
   matches: MatchesNamespace

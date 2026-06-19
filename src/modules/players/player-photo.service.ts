@@ -1,12 +1,25 @@
-import { copyFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
 import { extname, join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { pathToFileURL } from 'node:url'
 import { dialog } from 'electron'
 import { ValidationError } from './player.validation'
 
 const PHOTOS_FOLDER = 'photos'
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg'])
+
+function getPhotoMimeType(photoPath: string): string {
+  const extension = extname(photoPath).toLowerCase()
+
+  if (extension === '.png') {
+    return 'image/png'
+  }
+
+  if (extension === '.jpg' || extension === '.jpeg') {
+    return 'image/jpeg'
+  }
+
+  return 'application/octet-stream'
+}
 
 export class PlayerPhotoService {
   private userDataPath: string | null = null
@@ -76,7 +89,9 @@ export class PlayerPhotoService {
       return null
     }
 
-    return pathToFileURL(photoPath).href
+    const buffer = readFileSync(photoPath)
+
+    return `data:${getPhotoMimeType(photoPath)};base64,${buffer.toString('base64')}`
   }
 
   deletePhotoIfManaged(photoPath: string | null): void {
@@ -85,6 +100,14 @@ export class PlayerPhotoService {
     }
 
     unlinkSync(photoPath)
+  }
+
+  clearAllStoredPhotos(): void {
+    this.ensurePhotosDirectory()
+
+    for (const entry of readdirSync(this.photosDirectory)) {
+      unlinkSync(join(this.photosDirectory, entry))
+    }
   }
 }
 

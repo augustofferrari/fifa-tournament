@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getStickerRepository, stickerExportService } from '@modules/stickers'
+import { getStickerRepository, getStickerTierService, stickerExportService } from '@modules/stickers'
 import { IPC_CHANNELS } from '@shared/ipc/channels'
 import type {
   CreateStickerRequest,
@@ -10,6 +10,9 @@ import type {
   GetStickerByPlayerIdResponse,
   GetStickerImageUrlRequest,
   GetStickerImageUrlResponse,
+  GetPlayerTierRequest,
+  GetPlayerTierResponse,
+  GetPlayerTiersResponse,
   ListStickersRequest,
   ListStickersResponse,
   UpdateStickerRequest,
@@ -76,5 +79,17 @@ export function registerStickerHandlers(): void {
       runIpcHandler<GetStickerImageUrlResponse>(() => ({
         url: stickerExportService.getImageUrl(request.imagePath),
       })),
+  )
+
+  ipcMain.handle(IPC_CHANNELS.STICKERS_GET_PLAYER_TIERS, () =>
+    runIpcHandler<GetPlayerTiersResponse>(() => getStickerTierService().getPlayerTiers()),
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.STICKERS_GET_PLAYER_TIER,
+    (_event, request: GetPlayerTierRequest) =>
+      runIpcHandler<GetPlayerTierResponse>(() =>
+        getStickerTierService().getPlayerTier(request.playerId),
+      ),
   )
 }

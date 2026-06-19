@@ -1,13 +1,21 @@
-import { getDatabase } from '@database'
-import { getPlayerRepository } from '@modules/players/instance'
 import { StickerRepository } from './sticker.repository'
+import { StickerTierService } from './sticker-tier.service'
 
-let repository: StickerRepository | undefined
+let stickerRepository: StickerRepository | null = null
+let stickerTierService: StickerTierService | null = null
 
 export function getStickerRepository(): StickerRepository {
-  if (!repository) {
-    repository = new StickerRepository(getDatabase(), getPlayerRepository())
+  if (!stickerRepository) {
+    stickerRepository = new StickerRepository()
   }
 
-  return repository
+  return stickerRepository
+}
+
+export function getStickerTierService(): StickerTierService {
+  if (!stickerTierService) {
+    stickerTierService = new StickerTierService()
+  }
+
+  return stickerTierService
 }

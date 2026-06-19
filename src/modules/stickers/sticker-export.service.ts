@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
@@ -71,6 +71,14 @@ export class StickerExportService {
     }
 
     return pathToFileURL(imagePath).href
+  }
+
+  clearAllStoredImages(): void {
+    this.ensureStickersDirectory()
+
+    for (const entry of readdirSync(this.stickersDirectory)) {
+      unlinkSync(join(this.stickersDirectory, entry))
+    }
   }
 }
 

@@ -4,12 +4,15 @@ import type {
   Sticker,
   UpdateStickerInput,
 } from '@shared/types/sticker'
+import type { PlayerStickerTierInfo } from '@shared/types/sticker-tier'
 import type {
   CreateStickerResponse,
   ExportStickerPngRequest,
   ExportStickerPngResponse,
   GetStickerByPlayerIdResponse,
   GetStickerImageUrlResponse,
+  GetPlayerTierResponse,
+  GetPlayerTiersResponse,
   ListStickersResponse,
   UpdateStickerResponse,
 } from '@shared/types/sticker-ipc'
@@ -25,6 +28,8 @@ export interface StickersNamespace {
   list(options?: ListStickersOptions): Promise<ListStickersResponse>
   exportPng(input: ExportStickerPngInput): Promise<ExportStickerPngResponse>
   getImageUrl(imagePath: string | null): Promise<GetStickerImageUrlResponse>
+  getPlayerTiers(): Promise<GetPlayerTiersResponse>
+  getPlayerTier(playerId: string): Promise<GetPlayerTierResponse>
 }
 
 export type { Sticker }

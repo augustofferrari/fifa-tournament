@@ -1,5 +1,6 @@
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
+import type { PlayerStickerTierInfo } from '@shared/types/sticker-tier'
 import {
   playerToStickerEditorValues,
   StickerEditor,
@@ -10,16 +11,18 @@ import { hasExportedSticker } from './sticker-utils'
 interface StickerEditorModalProps {
   player: Player | null
   sticker: Sticker | null
+  playerTierInfo: PlayerStickerTierInfo
   values: StickerEditorValues
   onChange: (values: StickerEditorValues) => void
   onClose: () => void
-  onExportSuccess: (message: string) => void
+  onExportSuccess: (message: string, sticker: Sticker) => void
   onExportError: (message: string) => void
 }
 
 export function StickerEditorModal({
   player,
   sticker,
+  playerTierInfo,
   values,
   onChange,
   onClose,
@@ -54,6 +57,7 @@ export function StickerEditorModal({
         <StickerEditor
           players={[player]}
           values={values}
+          playerTierInfo={playerTierInfo}
           onChange={onChange}
           lockPlayer
           exportButtonLabel={isEditing ? 'Re-export PNG' : 'Export PNG'}

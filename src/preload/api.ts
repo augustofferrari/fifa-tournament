@@ -7,6 +7,11 @@ export function createApi(): ElectronApi {
     app: {
       platform: process.platform as Platform,
       ping: () => ipc.invokeResult(IPC_CHANNELS.APP_PING),
+      resetAllData: () => ipc.invokeResult(IPC_CHANNELS.APP_RESET_ALL_DATA),
+    },
+    windows: {
+      openTvMode: (tournamentId) =>
+        ipc.invokeResult(IPC_CHANNELS.WINDOWS_OPEN_TV_MODE, { tournamentId }),
     },
     players: {
       create: (input) => ipc.invokeResult(IPC_CHANNELS.PLAYERS_CREATE, input),
@@ -61,6 +66,8 @@ export function createApi(): ElectronApi {
         ipc.invokeResult(IPC_CHANNELS.TOURNAMENTS_GET_BRACKET_VIEW, { phaseId }),
       getAwards: (tournamentId) =>
         ipc.invokeResult(IPC_CHANNELS.TOURNAMENTS_GET_AWARDS, { tournamentId }),
+      getNarrative: (tournamentId) =>
+        ipc.invokeResult(IPC_CHANNELS.TOURNAMENTS_GET_NARRATIVE, { tournamentId }),
       setResultsUnlocked: (tournamentId, resultsUnlocked) =>
         ipc.invokeResult(IPC_CHANNELS.TOURNAMENTS_SET_RESULTS_UNLOCKED, {
           tournamentId,
@@ -85,12 +92,18 @@ export function createApi(): ElectronApi {
       exportPng: (input) => ipc.invokeResult(IPC_CHANNELS.STICKERS_EXPORT_PNG, input),
       getImageUrl: (imagePath) =>
         ipc.invokeResult(IPC_CHANNELS.STICKERS_GET_IMAGE_URL, { imagePath }),
+      getPlayerTiers: () => ipc.invokeResult(IPC_CHANNELS.STICKERS_GET_PLAYER_TIERS),
+      getPlayerTier: (playerId) =>
+        ipc.invokeResult(IPC_CHANNELS.STICKERS_GET_PLAYER_TIER, { playerId }),
     },
     stats: {
       getHistoricalRanking: () =>
         ipc.invokeResult(IPC_CHANNELS.STATS_GET_HISTORICAL_RANKING),
       getHeadToHead: (playerAId, playerBId) =>
         ipc.invokeResult(IPC_CHANNELS.STATS_GET_HEAD_TO_HEAD, { playerAId, playerBId }),
+      getPlayerStreaks: (playerId) =>
+        ipc.invokeResult(IPC_CHANNELS.STATS_GET_PLAYER_STREAKS, { playerId }),
+      getAllPlayerStreaks: () => ipc.invokeResult(IPC_CHANNELS.STATS_GET_ALL_PLAYER_STREAKS),
     },
   }
 }

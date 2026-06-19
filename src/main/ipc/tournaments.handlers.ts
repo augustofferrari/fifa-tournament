@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { getTournamentAwardsService } from '@modules/tournament-awards'
+import { getTournamentNarrativeService } from '@modules/tournament-narratives'
 import {
   getGroupGenerationService,
   getGroupStageFixtureService,
@@ -17,6 +18,8 @@ import type {
   CreateTournamentResponse,
   GetTournamentAwardsRequest,
   GetTournamentAwardsResponse,
+  GetTournamentNarrativeRequest,
+  GetTournamentNarrativeResponse,
   GetTournamentByIdRequest,
   GetTournamentByIdResponse,
   GetTournamentPlayersRequest,
@@ -190,6 +193,14 @@ export function registerTournamentHandlers(): void {
     (_event, request: GetTournamentAwardsRequest) =>
       runIpcHandler<GetTournamentAwardsResponse>(() =>
         getTournamentAwardsService().getTournamentAwards(request.tournamentId),
+      ),
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.TOURNAMENTS_GET_NARRATIVE,
+    (_event, request: GetTournamentNarrativeRequest) =>
+      runIpcHandler<GetTournamentNarrativeResponse>(() =>
+        getTournamentNarrativeService().getTournamentNarrative(request.tournamentId),
       ),
   )
 

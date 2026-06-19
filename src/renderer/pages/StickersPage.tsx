@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
+import type { PlayerStickerTierInfo } from '@shared/types/sticker-tier'
+import { StickerTier } from '@shared/types/sticker-tier'
 import { PageHeader } from '@renderer/components/PageHeader'
 import {
   createEditorValuesForPlayer,
@@ -22,15 +24,26 @@ function getErrorMessage(error: unknown): string {
   return 'Something went wrong'
 }
 
+const EMPTY_TIER_INFO: PlayerStickerTierInfo = {
+  playerId: '',
+  tier: StickerTier.BRONZE,
+  historicalRank: null,
+  tournamentsWon: 0,
+  goalsFor: 0,
+  winRate: 0,
+}
+
 interface EditorSession {
   player: Player
   sticker: Sticker | null
   values: StickerEditorValues
+  playerTierInfo: PlayerStickerTierInfo
 }
 
 export function StickersPage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [stickers, setStickers] = useState<Sticker[]>([])
+  const [playerTiers, setPlayerTiers] = useState<PlayerStickerTierInfo[]>([])
   const [editorSession, setEditorSession] = useState<EditorSession | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,13 +53,15 @@ export function StickersPage() {
     setError(null)
 
     try {
-      const [playerData, stickerData] = await Promise.all([
+      const [playerData, stickerData, tierData] = await Promise.all([
         window.api.players.list(),
         window.api.stickers.list(),
+        window.api.stickers.getPlayerTiers(),
       ])
 
       setPlayers(playerData)
       setStickers(stickerData)
+      setPlayerTiers(tierData)
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -61,10 +76,17 @@ export function StickersPage() {
   function openEditor(player: Player, sticker: Sticker | null) {
     setError(null)
     setSuccessMessage(null)
+    const playerTierInfo =
+      playerTiers.find((entry) => entry.playerId === player.id) ?? {
+        ...EMPTY_TIER_INFO,
+        playerId: player.id,
+      }
+
     setEditorSession({
       player,
       sticker,
       values: createEditorValuesForPlayer(player, sticker),
+      playerTierInfo,
     })
   }
 
@@ -80,11 +102,19 @@ export function StickersPage() {
     setEditorSession(null)
   }
 
-  async function handleExportSuccess(message: string) {
+  async function handleExportSuccess(message: string, sticker: Sticker) {
     setError(null)
     setSuccessMessage(message)
     await loadAlbum()
-    setEditorSession(null)
+    setEditorSession((current) =>
+      current
+        ? {
+            ...current,
+            sticker,
+            values: createEditorValuesForPlayer(current.player, sticker),
+          }
+        : current,
+    )
   }
 
   function handleExportError(message: string) {
@@ -122,6 +152,7 @@ export function StickersPage() {
         <StickersAlbum
           players={players}
           stickers={stickers}
+          playerTiers={playerTiers}
           onCreateSticker={handleCreateSticker}
           onEditSticker={handleEditSticker}
         />
@@ -130,6 +161,7 @@ export function StickersPage() {
       <StickerEditorModal
         player={editorSession?.player ?? null}
         sticker={editorSession?.sticker ?? null}
+        playerTierInfo={editorSession?.playerTierInfo ?? EMPTY_TIER_INFO}
         values={
           editorSession?.values ?? {
             playerId: '',
@@ -144,7 +176,7 @@ export function StickersPage() {
           setEditorSession((current) => (current ? { ...current, values } : current))
         }}
         onClose={handleCloseEditor}
-        onExportSuccess={(message) => void handleExportSuccess(message)}
+        onExportSuccess={(message, sticker) => void handleExportSuccess(message, sticker)}
         onExportError={handleExportError}
       />
     </section>

@@ -57,3 +57,5 @@ export function getDatabase(): Database.Database {
 export function closeDatabase(): void {
   sqliteDatabase.close()
 }
+
+export { clearAllApplicationData } from './reset-database'

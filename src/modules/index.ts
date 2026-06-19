@@ -15,11 +15,24 @@ export {
 } from './head-to-head'
 export type { CalculateHeadToHeadStatsInput } from './head-to-head'
 export {
+  PlayerStreakService,
+  calculateAllPlayerStreaks,
+  calculatePlayerStreaks,
+  getPlayerStreakService,
+} from './player-streaks'
+export type { CalculatePlayerStreaksInput } from './player-streaks'
+export {
   TournamentAwardsService,
   calculateTournamentAwards,
   getTournamentAwardsService,
 } from './tournament-awards'
 export type { CalculateTournamentAwardsInput } from './tournament-awards'
+export {
+  TournamentNarrativeService,
+  generateTournamentNarrative,
+  getTournamentNarrativeService,
+} from './tournament-narratives'
+export type { GenerateTournamentNarrativeInput } from './tournament-narratives'
 export {
   HistoricalStatsRepository,
   calculateHistoricalStats,

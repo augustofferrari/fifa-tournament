@@ -8,9 +8,11 @@ interface PlayerPhotoProps {
 
 export function PlayerPhoto({ photoPath, alt, size = 'md' }: PlayerPhotoProps) {
   const [url, setUrl] = useState<string | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
+    setLoadFailed(false)
 
     async function loadPhoto() {
       if (!photoPath) {
@@ -37,9 +39,16 @@ export function PlayerPhoto({ photoPath, alt, size = 'md' }: PlayerPhotoProps) {
     }
   }, [photoPath])
 
-  if (!url) {
+  if (!url || loadFailed) {
     return <div className={`player-photo player-photo--${size} player-photo--empty`} aria-hidden />
   }
 
-  return <img className={`player-photo player-photo--${size}`} src={url} alt={alt} />
+  return (
+    <img
+      className={`player-photo player-photo--${size}`}
+      src={url}
+      alt={alt}
+      onError={() => setLoadFailed(true)}
+    />
+  )
 }

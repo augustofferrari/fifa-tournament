@@ -7,6 +7,7 @@ import type {
   AddPlayersToTournamentResponse,
   CreateTournamentResponse,
   GetTournamentAwardsResponse,
+  GetTournamentNarrativeResponse,
   GetTournamentByIdResponse,
   GetTournamentPhasesResponse,
   GetTournamentPlayersResponse,
@@ -37,6 +38,7 @@ import type { TournamentGroupWithPlayers, GenerateTournamentGroupsResult } from 
 import type { Match } from '@shared/types/match'
 import type { GroupStandings, StandingRow } from '@shared/types/standings'
 import type { TournamentAwards } from '@shared/types/tournament-awards'
+import type { TournamentNarrative } from '@shared/types/tournament-narrative'
 
 export interface TournamentsNamespace {
   create(input: CreateTournamentInput): Promise<CreateTournamentResponse>
@@ -65,6 +67,7 @@ export interface TournamentsNamespace {
   ): Promise<GenerateKnockoutOnlyResponse>
   getBracketView(phaseId: string): Promise<GetBracketViewResponse>
   getAwards(tournamentId: string): Promise<GetTournamentAwardsResponse>
+  getNarrative(tournamentId: string): Promise<GetTournamentNarrativeResponse>
   setResultsUnlocked(
     tournamentId: string,
     resultsUnlocked: boolean,
@@ -82,6 +85,7 @@ export type {
   StandingRow,
   Tournament,
   TournamentAwards,
+  TournamentNarrative,
   TournamentGroupWithPlayers,
   TournamentPhase,
 }

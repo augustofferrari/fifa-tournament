@@ -4,6 +4,7 @@ import type {
   Sticker,
   UpdateStickerInput,
 } from './sticker'
+import type { PlayerStickerTierInfo } from './sticker-tier'
 
 export type CreateStickerRequest = CreateStickerInput
 export type CreateStickerResponse = Sticker
@@ -42,3 +43,11 @@ export interface GetStickerImageUrlRequest {
 export interface GetStickerImageUrlResponse {
   url: string | null
 }
+
+export type GetPlayerTiersResponse = PlayerStickerTierInfo[]
+
+export interface GetPlayerTierRequest {
+  playerId: string
+}
+
+export type GetPlayerTierResponse = PlayerStickerTierInfo

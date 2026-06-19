@@ -1,4 +1,8 @@
 import { forwardRef, useEffect, useState } from 'react'
+import { StickerTier } from '@shared/types/sticker-tier'
+import { StickerTierBadge } from './StickerTierBadge'
+import { formatStickerWinRate } from './sticker-stats-utils'
+import { getStickerTierClassName } from './sticker-tier-utils'
 
 interface StickerPreviewPhotoProps {
   photoPath: string | null
@@ -43,6 +47,12 @@ function StickerPreviewPhoto({ photoPath, alt }: StickerPreviewPhotoProps) {
   return <img className="sticker-preview__photo" src={url} alt={alt} />
 }
 
+export interface StickerPreviewStats {
+  tournamentsWon: number
+  goalsFor: number
+  winRate: number
+}
+
 export interface StickerPreviewData {
   playerName: string
   nickname: string
@@ -51,6 +61,8 @@ export interface StickerPreviewData {
   rating: number | null
   position: string
   theme: string
+  tier?: StickerTier | null
+  stats?: StickerPreviewStats | null
 }
 
 interface StickerPreviewProps {
@@ -76,6 +88,12 @@ function displayName(data: StickerPreviewData): string {
   return data.nickname.trim() || data.playerName.trim() || 'Player Name'
 }
 
+const EMPTY_STATS: StickerPreviewStats = {
+  tournamentsWon: 0,
+  goalsFor: 0,
+  winRate: 0,
+}
+
 export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(function StickerPreview(
   { data, className },
   ref,
@@ -85,8 +103,16 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
   const team = data.teamName.trim() || 'National Team'
   const position = data.position.trim().toUpperCase() || '—'
   const rating = data.rating !== null && data.rating >= 0 ? data.rating : null
+  const tier = data.tier ?? StickerTier.BRONZE
+  const stats = data.stats ?? EMPTY_STATS
 
-  const rootClassName = ['sticker-preview', className].filter(Boolean).join(' ')
+  const rootClassName = [
+    'sticker-preview',
+    getStickerTierClassName(tier, 'sticker-preview'),
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <article ref={ref} className={rootClassName} aria-label={`Sticker preview for ${name}`}>
@@ -95,7 +121,10 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
 
         <div className="sticker-preview__card">
           <header className="sticker-preview__header">
-            <span className="sticker-preview__brand">Mundial Album</span>
+            <div className="sticker-preview__header-top">
+              <span className="sticker-preview__brand">Mundial Album</span>
+              <StickerTierBadge tier={tier} variant="header" />
+            </div>
             <span className="sticker-preview__theme">{themeLabel}</span>
           </header>
 
@@ -111,6 +140,21 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
 
             <div className="sticker-preview__photo-wrap">
               <StickerPreviewPhoto photoPath={data.photoPath} alt={name} />
+            </div>
+
+            <div className="sticker-preview__stats" aria-label="Historical stats">
+              <div className="sticker-preview__stat">
+                <span className="sticker-preview__stat-value">{stats.tournamentsWon}</span>
+                <span className="sticker-preview__stat-label">Titles</span>
+              </div>
+              <div className="sticker-preview__stat">
+                <span className="sticker-preview__stat-value">{stats.goalsFor}</span>
+                <span className="sticker-preview__stat-label">Goals</span>
+              </div>
+              <div className="sticker-preview__stat">
+                <span className="sticker-preview__stat-value">{formatStickerWinRate(stats.winRate)}</span>
+                <span className="sticker-preview__stat-label">Win rate</span>
+              </div>
             </div>
           </div>
 

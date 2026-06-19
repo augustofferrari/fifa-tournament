@@ -1,5 +1,14 @@
 export { StickerRepository } from './sticker.repository'
-export { getStickerRepository } from './instance'
+export { getStickerRepository, getStickerTierService } from './instance'
+export { StickerTierService } from './sticker-tier.service'
+export {
+  buildPlayerStickerTierInfo,
+  getHistoricalRank,
+  hasPositiveWinRate,
+  isGoldTier,
+  isLegendTier,
+  resolveStickerTier,
+} from './sticker-tier.calculator'
 export {
   initializeStickerExportService,
   stickerExportService,
