@@ -8,6 +8,7 @@ import { TournamentPhaseService } from '../tournament-phases/tournament-phase.se
 import { TournamentRepository } from './tournament.repository'
 import { ValidationError } from './tournament.validation'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 import { TournamentFormat } from '@shared/types/tournament-format'
 
 describe('TournamentRepository validation', () => {
@@ -31,7 +32,7 @@ describe('TournamentRepository validation', () => {
   it('requires a tournament name', () => {
     expect(() => tournamentRepository.createTournament({ name: '  ' })).toThrow(ValidationError)
     expect(() => tournamentRepository.createTournament({ name: '  ' })).toThrow(
-      ValidationMessages.tournamentNameRequired,
+      translate(ValidationMessages.tournamentNameRequired, 'en'),
     )
   })
 
@@ -41,7 +42,7 @@ describe('TournamentRepository validation', () => {
 
     expect(() =>
       tournamentRepository.addPlayersToTournament(tournament.id, [player.id]),
-    ).toThrow(ValidationMessages.tournamentMinPlayers)
+    ).toThrow(translate(ValidationMessages.tournamentMinPlayers, 'en'))
   })
 
   it('requires at least 3 players for round robin plus playoffs tournaments', () => {

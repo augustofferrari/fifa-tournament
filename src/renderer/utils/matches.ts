@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import type { Match, MatchStatus } from '@shared/types/match'
 
 export interface MatchRound {
@@ -30,6 +31,15 @@ export function formatMatchResult(match: Match): string | null {
   return `${match.homeGoals} – ${match.awayGoals}`
 }
 
-export function matchStatusLabel(status: MatchStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1)
+export function matchStatusLabel(status: MatchStatus | 'pending', t: TFunction): string {
+  switch (status) {
+    case 'scheduled':
+      return t('common.status.scheduled')
+    case 'played':
+      return t('common.status.played')
+    case 'pending':
+      return t('common.status.pending')
+    case 'cancelled':
+      return status.charAt(0).toUpperCase() + status.slice(1)
+  }
 }

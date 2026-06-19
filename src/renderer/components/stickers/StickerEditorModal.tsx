@@ -1,6 +1,7 @@
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
 import type { PlayerStickerTierInfo } from '@shared/types/sticker-tier'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 import {
   playerToStickerEditorValues,
   StickerEditor,
@@ -29,12 +30,16 @@ export function StickerEditorModal({
   onExportSuccess,
   onExportError,
 }: StickerEditorModalProps) {
+  const { t } = useAppTranslation()
+
   if (!player) {
     return null
   }
 
   const isEditing = hasExportedSticker(sticker)
-  const title = isEditing ? `Edit Sticker — ${player.name}` : `Create Sticker — ${player.name}`
+  const title = isEditing
+    ? t('stickers.modal.editTitle', { name: player.name })
+    : t('stickers.modal.createTitle', { name: player.name })
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -50,7 +55,7 @@ export function StickerEditorModal({
             {title}
           </h2>
           <button className="btn btn--ghost btn--sm" type="button" onClick={onClose}>
-            Close
+            {t('stickers.modal.close')}
           </button>
         </div>
 
@@ -60,7 +65,9 @@ export function StickerEditorModal({
           playerTierInfo={playerTierInfo}
           onChange={onChange}
           lockPlayer
-          exportButtonLabel={isEditing ? 'Re-export PNG' : 'Export PNG'}
+          exportButtonLabel={
+            isEditing ? t('stickers.modal.reExportPng') : t('stickers.modal.exportPng')
+          }
           onExportSuccess={onExportSuccess}
           onExportError={onExportError}
         />

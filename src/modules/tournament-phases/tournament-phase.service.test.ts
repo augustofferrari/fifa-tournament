@@ -46,10 +46,15 @@ describe('TournamentPhaseService', () => {
         ? { groupCount: 2, playersPerGroup: 2, playoffQualifiedCount: 1 }
         : {}),
     })
-    const players = [
-      playerRepository.createPlayer({ name: 'Alice' }),
-      playerRepository.createPlayer({ name: 'Bob' }),
-    ]
+    const minimumPlayers =
+      format === TournamentFormat.GROUPS_KNOCKOUT
+        ? 4
+        : format === TournamentFormat.ROUND_ROBIN_PLAYOFFS
+          ? 3
+          : 2
+    const players = Array.from({ length: minimumPlayers }, (_, index) =>
+      playerRepository.createPlayer({ name: `Player ${index + 1}` }),
+    )
     tournamentRepository.addPlayersToTournament(
       tournament.id,
       players.map((player) => player.id),

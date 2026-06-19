@@ -6,6 +6,7 @@ import { TournamentRepository } from '../tournaments/tournament.repository'
 import { PlayerRepository } from './player.repository'
 import { ValidationError } from './player.validation'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 
 describe('PlayerRepository validation', () => {
   let db: Database.Database
@@ -25,7 +26,7 @@ describe('PlayerRepository validation', () => {
   it('requires a player name', () => {
     expect(() => playerRepository.createPlayer({ name: '   ' })).toThrow(ValidationError)
     expect(() => playerRepository.createPlayer({ name: '   ' })).toThrow(
-      ValidationMessages.playerNameRequired,
+      translate(ValidationMessages.playerNameRequired, 'en'),
     )
   })
 

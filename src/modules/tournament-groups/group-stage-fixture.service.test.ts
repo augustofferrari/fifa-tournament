@@ -10,6 +10,7 @@ import { TournamentRepository } from '../tournaments/tournament.repository'
 import { ValidationError } from '../tournaments/tournament.validation'
 import { TournamentFormat } from '@shared/types/tournament-format'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 import { GroupGenerationService } from './group-generation.service'
 import { GroupStageFixtureService } from './group-stage-fixture.service'
 import { TournamentGroupRepository } from './tournament-group.repository'
@@ -172,7 +173,7 @@ describe('GroupStageFixtureService', () => {
 
     expect(() => groupStageFixtureService.generateFixture(tournament.id)).toThrow(ValidationError)
     expect(() => groupStageFixtureService.generateFixture(tournament.id)).toThrow(
-      ValidationMessages.fixtureAlreadyGenerated,
+      translate(ValidationMessages.fixtureAlreadyGenerated, 'en'),
     )
   })
 })

@@ -12,6 +12,7 @@ const tournament: Tournament = {
   id: 't1',
   name: 'World Cup',
   status: 'active',
+  resultsUnlocked: false,
   ...DEFAULT_TOURNAMENT_FORMAT_CONFIG,
   pointsWin: 3,
   pointsDraw: 1,

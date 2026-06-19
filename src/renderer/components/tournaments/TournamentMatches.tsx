@@ -4,9 +4,10 @@ import { getPlayerDisplayName } from '@shared/validation'
 import {
   formatMatchResult,
   groupMatchesByRound,
-  matchStatusLabel,
   type MatchRound,
 } from '@renderer/utils/matches'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 
 interface TournamentMatchesProps {
   matches: Match[]
@@ -21,6 +22,7 @@ export function TournamentMatches({
   onSelectMatch,
   readOnly = false,
 }: TournamentMatchesProps) {
+  const { t } = useAppTranslation()
   const rounds: MatchRound[] = groupMatchesByRound(matches)
 
   if (rounds.length === 0) {
@@ -29,12 +31,14 @@ export function TournamentMatches({
 
   return (
     <div className="card tournament-detail__matches">
-      <h2 className="tournament-detail__section-title">Matches</h2>
+      <h2 className="tournament-detail__section-title">{t('tournaments.matches')}</h2>
 
       <div className="match-rounds">
         {rounds.map((round) => (
           <section key={round.roundNumber} className="match-round">
-            <h3 className="match-round__title">Round {round.roundNumber}</h3>
+            <h3 className="match-round__title">
+              {t('common.round', { number: round.roundNumber })}
+            </h3>
             <ul className="match-round__list">
               {round.matches.map((match) => {
                 const result = formatMatchResult(match)
@@ -45,16 +49,22 @@ export function TournamentMatches({
                       <div className="match-card match-card--readonly">
                         <div className="match-card__teams">
                           <span className="match-card__team">
-                            {getPlayerDisplayName(playersById, match.homePlayerId)}
+                            {displayPlayerName(
+                              getPlayerDisplayName(playersById, match.homePlayerId),
+                              t,
+                            )}
                           </span>
-                          <span className="match-card__versus">{result ?? 'vs'}</span>
+                          <span className="match-card__versus">{result ?? t('common.vs')}</span>
                           <span className="match-card__team">
-                            {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                            {displayPlayerName(
+                              getPlayerDisplayName(playersById, match.awayPlayerId),
+                              t,
+                            )}
                           </span>
                         </div>
                         <div className="match-card__meta">
                           <span className={`status-badge status-badge--match-${match.status}`}>
-                            {matchStatusLabel(match.status)}
+                            {t(`common.status.${match.status}`)}
                           </span>
                         </div>
                       </div>
@@ -66,19 +76,27 @@ export function TournamentMatches({
                       >
                         <div className="match-card__teams">
                           <span className="match-card__team">
-                            {getPlayerDisplayName(playersById, match.homePlayerId)}
+                            {displayPlayerName(
+                              getPlayerDisplayName(playersById, match.homePlayerId),
+                              t,
+                            )}
                           </span>
-                          <span className="match-card__versus">{result ?? 'vs'}</span>
+                          <span className="match-card__versus">{result ?? t('common.vs')}</span>
                           <span className="match-card__team">
-                            {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                            {displayPlayerName(
+                              getPlayerDisplayName(playersById, match.awayPlayerId),
+                              t,
+                            )}
                           </span>
                         </div>
                         <div className="match-card__meta">
                           <span className={`status-badge status-badge--match-${match.status}`}>
-                            {matchStatusLabel(match.status)}
+                            {t(`common.status.${match.status}`)}
                           </span>
                           <span className="match-card__action">
-                            {match.status === 'played' ? 'Edit result' : 'Enter result'}
+                            {match.status === 'played'
+                              ? t('tournaments.match.editResult')
+                              : t('tournaments.match.enterResult')}
                           </span>
                         </div>
                       </button>

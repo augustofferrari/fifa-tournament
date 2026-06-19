@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import type { Match } from '@shared/types/match'
 import type { Tournament } from '@shared/types/tournament'
 import { TournamentFormat } from '@shared/types/tournament-format'
@@ -44,6 +45,7 @@ export function getGeneratePlayoffsActionState(
   phases: TournamentPhase[],
   selectedPhase: TournamentPhase | null,
   matches: Match[],
+  t: TFunction,
 ): GeneratePlayoffsActionState {
   if (tournament.format !== TournamentFormat.ROUND_ROBIN_PLAYOFFS) {
     return { visible: false, enabled: false, hint: null }
@@ -74,7 +76,7 @@ export function getGeneratePlayoffsActionState(
     return {
       visible: true,
       enabled: false,
-      hint: 'Generate the regular season fixture before creating playoffs.',
+      hint: t('tournaments.phaseActions.hintGenerateRegularSeason'),
     }
   }
 
@@ -84,7 +86,7 @@ export function getGeneratePlayoffsActionState(
     return {
       visible: true,
       enabled: false,
-      hint: `Play all regular season matches before generating playoffs (${unplayedCount} remaining).`,
+      hint: t('tournaments.phaseActions.hintPlayRegularSeason', { count: unplayedCount }),
     }
   }
 
@@ -92,7 +94,7 @@ export function getGeneratePlayoffsActionState(
     return {
       visible: true,
       enabled: false,
-      hint: 'Playoff qualification count is not configured for this tournament.',
+      hint: t('tournaments.phaseActions.hintPlayoffNotConfigured'),
     }
   }
 
@@ -104,6 +106,7 @@ export function getGenerateKnockoutActionState(
   phases: TournamentPhase[],
   selectedPhase: TournamentPhase | null,
   matches: Match[],
+  t: TFunction,
 ): GenerateKnockoutActionState {
   if (tournament.format !== TournamentFormat.GROUPS_KNOCKOUT) {
     return { visible: false, enabled: false, hint: null }
@@ -134,7 +137,7 @@ export function getGenerateKnockoutActionState(
     return {
       visible: true,
       enabled: false,
-      hint: 'Generate the group stage fixture before creating the knockout bracket.',
+      hint: t('tournaments.phaseActions.hintGenerateGroupStage'),
     }
   }
 
@@ -144,7 +147,7 @@ export function getGenerateKnockoutActionState(
     return {
       visible: true,
       enabled: false,
-      hint: `Play all group stage matches before generating knockout (${unplayedCount} remaining).`,
+      hint: t('tournaments.phaseActions.hintPlayGroupStage', { count: unplayedCount }),
     }
   }
 
@@ -152,7 +155,7 @@ export function getGenerateKnockoutActionState(
     return {
       visible: true,
       enabled: false,
-      hint: 'Qualifiers per group is not configured for this tournament.',
+      hint: t('tournaments.phaseActions.hintQualifiersNotConfigured'),
     }
   }
 
@@ -162,6 +165,7 @@ export function getGenerateKnockoutActionState(
 export function getKnockoutOnlyStartHint(
   tournament: Tournament,
   matches: Match[],
+  t: TFunction,
 ): string | null {
   if (tournament.format !== TournamentFormat.KNOCKOUT_ONLY) {
     return null
@@ -175,5 +179,5 @@ export function getKnockoutOnlyStartHint(
     return null
   }
 
-  return 'Starting the tournament generates the knockout bracket immediately.'
+  return t('tournaments.phaseActions.knockoutOnlyStartHint')
 }

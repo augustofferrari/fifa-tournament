@@ -13,6 +13,7 @@ import { BracketRound } from '@shared/types/bracket-match'
 import { TournamentFormat } from '@shared/types/tournament-format'
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 import {
   GroupGenerationService,
   GroupStageFixtureService,
@@ -129,7 +130,7 @@ describe('bracket winner advancement', () => {
     ).toThrow(ValidationError)
     expect(() =>
       matchRepository.updateMatchResult(generated.firstRoundMatches[0]!.id, 1, 1),
-    ).toThrow(ValidationMessages.knockoutRequiresWinner)
+    ).toThrow(translate(ValidationMessages.knockoutRequiresWinner, 'en'))
   })
 
   it('still allows draws in group stage matches', () => {

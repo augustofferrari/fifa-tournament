@@ -1,4 +1,5 @@
 import { StickerTier } from '@shared/types/sticker-tier'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 import { formatStickerTierLabel, getStickerTierClassName } from './sticker-tier-utils'
 
 interface StickerTierBadgeProps {
@@ -21,6 +22,8 @@ function getBaseClass(variant: StickerTierBadgeProps['variant']): string {
 }
 
 export function StickerTierBadge({ tier, className, variant = 'preview' }: StickerTierBadgeProps) {
+  const { t } = useAppTranslation()
+  const tierLabel = formatStickerTierLabel(tier, t)
   const baseClass = getBaseClass(variant)
   const modifierPrefix = baseClass.split(' ')[0]!
   const rootClassName = [baseClass, getStickerTierClassName(tier, modifierPrefix), className]
@@ -28,8 +31,8 @@ export function StickerTierBadge({ tier, className, variant = 'preview' }: Stick
     .join(' ')
 
   return (
-    <div className={rootClassName} aria-label={`${formatStickerTierLabel(tier)} tier`}>
-      {formatStickerTierLabel(tier)}
+    <div className={rootClassName} aria-label={t('stickers.tier.label', { tier: tierLabel })}>
+      {tierLabel}
     </div>
   )
 }

@@ -1,12 +1,15 @@
+import { translate, type Locale, DEFAULT_LOCALE } from '@shared/i18n'
+
 export const MIN_TOURNAMENT_GROUP_COUNT = 2
 export const MIN_PLAYERS_PER_GROUP = 2
 
-export function getGroupName(orderIndex: number): string {
+export function getGroupName(orderIndex: number, locale: Locale = DEFAULT_LOCALE): string {
   if (!Number.isInteger(orderIndex) || orderIndex < 1) {
     throw new Error('orderIndex must be a positive integer')
   }
 
-  return `Group ${String.fromCharCode(64 + orderIndex)}`
+  const letter = String.fromCharCode(64 + orderIndex)
+  return translate('errors.groupName', locale, { letter })
 }
 
 export function distributePlayersSnake(playerIds: string[], groupCount: number): string[][] {

@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import { ValidationMessages, phaseAllowsDraws } from '@shared/validation'
 import type { TournamentPhaseType } from '@shared/types/tournament-phase'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 
 interface MatchResultModalProps {
   match: Match | null
@@ -37,6 +38,7 @@ export function MatchResultModal({
   onClose,
   onSave,
 }: MatchResultModalProps) {
+  const { t } = useAppTranslation()
   const [homeGoals, setHomeGoals] = useState('')
   const [awayGoals, setAwayGoals] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -63,19 +65,19 @@ export function MatchResultModal({
     const parsedAwayGoals = parseGoalsInput(awayGoals)
 
     if (parsedHomeGoals === null || parsedAwayGoals === null) {
-      setError(ValidationMessages.goalsMustBeWholeNumbers)
+      setError(t(ValidationMessages.goalsMustBeWholeNumbers))
       return
     }
 
     if (phaseType && !phaseAllowsDraws(phaseType) && parsedHomeGoals === parsedAwayGoals) {
-      setError(ValidationMessages.knockoutRequiresWinner)
+      setError(t(ValidationMessages.knockoutRequiresWinner))
       return
     }
 
     try {
       await onSave(parsedHomeGoals, parsedAwayGoals)
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save match result')
+      setError(getErrorMessage(err, t))
     }
   }
 
@@ -89,7 +91,9 @@ export function MatchResultModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="match-result-title" className="modal__title">
-          {match.status === 'played' ? 'Edit Match Result' : 'Enter Match Result'}
+          {match.status === 'played'
+            ? t('tournaments.match.editMatchResult')
+            : t('tournaments.match.enterMatchResult')}
         </h2>
 
         <form className="match-result-form" onSubmit={handleSubmit}>
@@ -125,17 +129,19 @@ export function MatchResultModal({
           </div>
 
           {phaseType && !phaseAllowsDraws(phaseType) && (
-            <p className="match-result-form__hint">Knockout matches require a winner.</p>
+            <p className="match-result-form__hint">
+              {t('tournaments.match.knockoutRequiresWinnerHint')}
+            </p>
           )}
 
           {error && <div className="alert alert--error">{error}</div>}
 
           <div className="modal__actions">
             <button className="btn btn--ghost" type="button" onClick={onClose} disabled={isSaving}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button className="btn btn--primary" type="submit" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save Result'}
+              {isSaving ? t('common.saving') : t('tournaments.match.saveResult')}
             </button>
           </div>
         </form>

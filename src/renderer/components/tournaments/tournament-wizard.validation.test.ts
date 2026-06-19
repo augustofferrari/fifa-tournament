@@ -1,10 +1,15 @@
+import type { TFunction } from 'i18next'
 import { describe, expect, it } from 'vitest'
+import { translate } from '@shared/i18n'
 import { TournamentFormat } from '@shared/types/tournament-format'
 import {
   buildFormatConfigInput,
   validateWizardFormatConfig,
   type TournamentWizardState,
 } from './tournament-wizard.validation'
+
+const t = ((key: string, params?: Record<string, string | number>) =>
+  translate(key, 'en', params)) as TFunction
 
 function createWizardState(overrides: Partial<TournamentWizardState> = {}): TournamentWizardState {
   return {
@@ -39,6 +44,6 @@ describe('buildFormatConfigInput', () => {
 
 describe('validateWizardFormatConfig', () => {
   it('accepts round robin only configuration', () => {
-    expect(validateWizardFormatConfig(createWizardState())).toEqual([])
+    expect(validateWizardFormatConfig(createWizardState(), t)).toEqual([])
   })
 })

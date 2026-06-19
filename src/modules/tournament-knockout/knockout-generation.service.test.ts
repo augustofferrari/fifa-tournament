@@ -1,5 +1,9 @@
 import Database from 'better-sqlite3'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { initializePreferencesService, preferencesService } from '@modules/app/preferences.service'
 import { createSchemaTables } from '../../database/migrations/schema'
 import { GroupGenerationService } from '../tournament-groups/group-generation.service'
 import { GroupStageFixtureService } from '../tournament-groups/group-stage-fixture.service'
@@ -15,6 +19,7 @@ import { ValidationError } from '../tournaments/tournament.validation'
 import { BracketRound, BracketSourceType } from '@shared/types/bracket-match'
 import { TournamentFormat } from '@shared/types/tournament-format'
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
+import { translate } from '@shared/i18n'
 import { KnockoutGenerationService } from './knockout-generation.service'
 
 describe('KnockoutGenerationService', () => {
@@ -31,6 +36,10 @@ describe('KnockoutGenerationService', () => {
   let knockoutGenerationService: KnockoutGenerationService
 
   beforeEach(() => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'mundial-test-'))
+    initializePreferencesService(tempDir)
+    preferencesService.setLocale('en')
+
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     createSchemaTables(db)
@@ -130,8 +139,12 @@ describe('KnockoutGenerationService', () => {
     expect(result.firstRoundMatches).toHaveLength(2)
     expect(result.bracketMatches).toHaveLength(3)
 
-    const groupA = groupStandings.find((group) => group.groupName === 'Group A')!
-    const groupB = groupStandings.find((group) => group.groupName === 'Group B')!
+    const groupA = groupStandings.find(
+      (group) => group.groupName === translate('errors.groupName', 'en', { letter: 'A' }),
+    )!
+    const groupB = groupStandings.find(
+      (group) => group.groupName === translate('errors.groupName', 'en', { letter: 'B' }),
+    )!
 
     const firstMatch = result.firstRoundMatches.find((match) => match.bracketPosition === 1)!
     const secondMatch = result.firstRoundMatches.find((match) => match.bracketPosition === 2)!
@@ -202,8 +215,12 @@ describe('KnockoutGenerationService', () => {
 
     for (const [index, [homeGroup, awayGroup]] of expectedPairings.entries()) {
       const match = result.firstRoundMatches.find((entry) => entry.bracketPosition === index + 1)!
-      const homeStanding = groupStandings.find((group) => group.groupName === `Group ${homeGroup}`)!
-      const awayStanding = groupStandings.find((group) => group.groupName === `Group ${awayGroup}`)!
+      const homeStanding = groupStandings.find(
+        (group) => group.groupName === translate('errors.groupName', 'en', { letter: homeGroup }),
+      )!
+      const awayStanding = groupStandings.find(
+        (group) => group.groupName === translate('errors.groupName', 'en', { letter: awayGroup }),
+      )!
       const homePlayerId = homeStanding.standings[0]!.playerId
       const awayPlayerId = awayStanding.standings[1]!.playerId
 
@@ -242,13 +259,13 @@ describe('KnockoutGenerationService', () => {
   })
 
   it('rejects unsupported bracket sizes', () => {
-    const { tournament } = setupGroupsKnockoutTournament(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], 3)
+    const { tournament } = setupGroupsKnockoutTournament(['A1', 'A2', 'A3', 'B1', 'B2', 'B3'], 2)
     playAllGroupStageMatches(tournament.id)
 
     expect(() =>
       knockoutGenerationService.generateKnockout({
         tournamentId: tournament.id,
-        qualifiersPerGroup: 2,
+        qualifiersPerGroup: 3,
       }),
     ).toThrow(ValidationError)
   })

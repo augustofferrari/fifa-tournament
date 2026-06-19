@@ -1,5 +1,9 @@
 import Database from 'better-sqlite3'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { initializePreferencesService, preferencesService } from '@modules/app/preferences.service'
 import { createSchemaTables } from '../../database/migrations/schema'
 import { MatchRepository } from '../matches/match.repository'
 import { PlayerRepository } from '../players/player.repository'
@@ -9,6 +13,7 @@ import { TournamentRepository } from '../tournaments/tournament.repository'
 import { ValidationError } from '../tournaments/tournament.validation'
 import { TournamentFormat } from '@shared/types/tournament-format'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 import { GroupGenerationService } from './group-generation.service'
 import { GroupStageFixtureService } from './group-stage-fixture.service'
 import { GroupStandingsService } from './group-standings.service'
@@ -26,6 +31,10 @@ describe('GroupStandingsService', () => {
   let matchRepository: MatchRepository
 
   beforeEach(() => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'mundial-test-'))
+    initializePreferencesService(tempDir)
+    preferencesService.setLocale('en')
+
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     createSchemaTables(db)
@@ -140,7 +149,10 @@ describe('GroupStandingsService', () => {
     const groupStandings = groupStandingsService.getGroupStandings(tournament.id)
 
     expect(groupStandings).toHaveLength(2)
-    expect(groupStandings.map((entry) => entry.groupName)).toEqual(['Group A', 'Group B'])
+    expect(groupStandings.map((entry) => entry.groupName)).toEqual([
+      translate('errors.groupName', 'en', { letter: 'A' }),
+      translate('errors.groupName', 'en', { letter: 'B' }),
+    ])
 
     const groupAStandings = groupStandings.find((entry) => entry.groupId === groupAId)!
     const groupBStandings = groupStandings.find((entry) => entry.groupId === groupBId)!

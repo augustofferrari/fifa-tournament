@@ -1,24 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import type { CreateTournamentInput, Tournament } from '@shared/types/tournament'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { TournamentCreateWizard, TournamentsTable } from '@renderer/components/tournaments'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 
 export function TournamentsPage() {
+  const { t } = useAppTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const [tournaments, setTournaments] = useState<Tournament[]>([])
@@ -40,11 +30,11 @@ export function TournamentsPage() {
       setTournaments(tournamentList)
       setPlayers(playerList)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void loadData()
@@ -73,7 +63,7 @@ export function TournamentsPage() {
       setShowCreateForm(false)
       navigate(`/tournaments/${tournament.id}`)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsSaving(false)
     }
@@ -81,10 +71,7 @@ export function TournamentsPage() {
 
   return (
     <section className="page page--wide">
-      <PageHeader
-        title="Tournaments"
-        description="Track tournaments and competition progress."
-      />
+      <PageHeader title={t('tournaments.title')} description={t('tournaments.description')} />
 
       <div className="page-toolbar">
         <button
@@ -95,7 +82,7 @@ export function TournamentsPage() {
             setError(null)
           }}
         >
-          Create Tournament
+          {t('tournaments.createTournament')}
         </button>
       </div>
 
@@ -111,11 +98,9 @@ export function TournamentsPage() {
       )}
 
       {isLoading ? (
-        <div className="page__empty">Loading tournaments…</div>
+        <div className="page__empty">{t('tournaments.loading')}</div>
       ) : tournaments.length === 0 ? (
-        <div className="page__empty">
-          No tournaments yet. Create your first tournament to get started.
-        </div>
+        <div className="page__empty">{t('tournaments.empty')}</div>
       ) : (
         <TournamentsTable tournaments={tournaments} />
       )}

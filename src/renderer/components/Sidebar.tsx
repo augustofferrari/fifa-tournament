@@ -1,22 +1,25 @@
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { APP_NAME } from '@shared/constants'
 
 export interface NavItem {
-  label: string
+  labelKey: string
   path: string
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/' },
-  { label: 'Players', path: '/players' },
-  { label: 'Tournaments', path: '/tournaments' },
-  { label: 'Ranking', path: '/ranking' },
-  { label: 'Head to Head', path: '/head-to-head' },
-  { label: 'Stickers', path: '/stickers' },
-  { label: 'Settings', path: '/settings' },
+  { labelKey: 'nav.dashboard', path: '/' },
+  { labelKey: 'nav.players', path: '/players' },
+  { labelKey: 'nav.tournaments', path: '/tournaments' },
+  { labelKey: 'nav.ranking', path: '/ranking' },
+  { labelKey: 'nav.headToHead', path: '/head-to-head' },
+  { labelKey: 'nav.stickers', path: '/stickers' },
+  { labelKey: 'nav.settings', path: '/settings' },
 ]
 
 export function Sidebar() {
+  const { t } = useTranslation()
+
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -34,7 +37,7 @@ export function Sidebar() {
               `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
             }
           >
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>

@@ -1,14 +1,16 @@
 import type Database from 'better-sqlite3'
 import { getDatabase } from '@database'
+import { preferencesService } from '@modules/app/preferences.service'
 import { TournamentPhaseService } from '@modules/tournament-phases/tournament-phase.service'
 import { TournamentRepository } from '@modules/tournaments/tournament.repository'
-import { assertNonEmptyString, ValidationError } from '@modules/tournaments/tournament.validation'
+import { assertNonEmptyString } from '@modules/tournaments/tournament.validation'
 import type {
   GenerateTournamentGroupsInput,
   GenerateTournamentGroupsResult,
   TournamentGroupWithPlayers,
 } from '@shared/types/tournament-group'
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
+import { createValidationError } from '@shared/validation/errors'
 import {
   buildSnakeGroupAssignments,
   getGroupName,
@@ -30,7 +32,7 @@ export class GroupGenerationService {
     const validated = validateGenerateTournamentGroupsInput(input)
 
     if (!this.tournamentRepository.getTournamentById(validated.tournamentId)) {
-      throw new ValidationError(`Tournament not found: ${validated.tournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validated.tournamentId })
     }
 
     const rosterPlayerIds = new Set(
@@ -41,7 +43,7 @@ export class GroupGenerationService {
 
     for (const playerId of validated.playerIds) {
       if (!rosterPlayerIds.has(playerId)) {
-        throw new ValidationError(`Player is not registered in this tournament: ${playerId}`)
+        throw createValidationError('errors.playerNotRegistered', { id: playerId })
       }
     }
 
@@ -53,11 +55,11 @@ export class GroupGenerationService {
       )
 
     if (!groupStagePhase) {
-      throw new ValidationError('Active group stage phase not found for this tournament')
+      throw createValidationError('errors.activeGroupStageNotFound')
     }
 
     if (this.tournamentGroupRepository.countGroupsByPhase(groupStagePhase.id) > 0) {
-      throw new ValidationError('Groups have already been generated for this phase')
+      throw createValidationError('errors.groupsAlreadyGenerated')
     }
 
     const seedPositionByPlayerId = new Map(
@@ -68,12 +70,14 @@ export class GroupGenerationService {
       validated.groupCount,
     )
 
+    const locale = preferencesService.getLocale()
+
     const generateGroups = this.db.transaction((): TournamentGroupWithPlayers[] =>
       groupAssignments.map(({ orderIndex, playerIds }) => {
         const group = this.tournamentGroupRepository.createGroup({
           tournamentId: validated.tournamentId,
           phaseId: groupStagePhase.id,
-          name: getGroupName(orderIndex),
+          name: getGroupName(orderIndex, locale),
           orderIndex,
         })
 
@@ -104,7 +108,7 @@ export class GroupGenerationService {
     const validatedTournamentId = assertNonEmptyString(tournamentId, 'tournamentId')
 
     if (!this.tournamentRepository.getTournamentById(validatedTournamentId)) {
-      throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validatedTournamentId })
     }
 
     const groupStagePhase = this.tournamentPhaseService

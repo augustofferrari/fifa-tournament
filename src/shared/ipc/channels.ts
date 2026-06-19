@@ -1,5 +1,7 @@
 export const IPC_CHANNELS = {
   APP_PING: 'app:ping',
+  APP_GET_LOCALE: 'app:getLocale',
+  APP_SET_LOCALE: 'app:setLocale',
   APP_RESET_ALL_DATA: 'app:resetAllData',
   PLAYERS_CREATE: 'players:create',
   PLAYERS_UPDATE: 'players:update',

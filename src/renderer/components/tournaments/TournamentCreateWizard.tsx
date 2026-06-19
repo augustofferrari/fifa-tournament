@@ -2,22 +2,27 @@ import { useMemo, useState } from 'react'
 import type { Player } from '@shared/types/player'
 import type { CreateTournamentInput } from '@shared/types/tournament'
 import {
+  getTournamentFormatLabel,
+  getTournamentFormatOptions,
+} from '@shared/tournament/format-display.utils'
+import {
   DEFAULT_TOURNAMENT_FORMAT,
-  TOURNAMENT_FORMAT_OPTIONS,
   TournamentFormat,
 } from '@shared/types/tournament-format'
-import { MIN_TOURNAMENT_PLAYERS, ValidationError } from '@shared/validation'
+import { MIN_TOURNAMENT_PLAYERS } from '@shared/validation'
 import { validateTournamentFormatConfig } from '@shared/validation/tournament-format'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 import { PlayerSelector } from './PlayerSelector'
 import {
   buildFormatConfigInput,
   getFormatConfigSummary,
-  getFormatLabel,
   getKnockoutOnlyBracketSizeLabel,
+  getWizardSteps,
   PLAYOFF_QUALIFIER_OPTIONS,
   validateWizardReview,
   validateWizardStep,
-  WIZARD_STEPS,
   type TournamentWizardState,
   type WizardStepId,
 } from './tournament-wizard.validation'
@@ -27,18 +32,6 @@ interface TournamentCreateWizardProps {
   isSubmitting: boolean
   onSubmit: (input: CreateTournamentInput, playerIds: string[]) => Promise<void>
   onCancel: () => void
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ValidationError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
 }
 
 function getInitialState(): TournamentWizardState {
@@ -58,14 +51,17 @@ export function TournamentCreateWizard({
   onSubmit,
   onCancel,
 }: TournamentCreateWizardProps) {
+  const { t, locale } = useAppTranslation()
   const [state, setState] = useState<TournamentWizardState>(getInitialState)
   const [stepIndex, setStepIndex] = useState(0)
   const [stepErrors, setStepErrors] = useState<string[]>([])
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const currentStep = WIZARD_STEPS[stepIndex]
+  const wizardSteps = useMemo(() => getWizardSteps(t), [t])
+  const formatOptions = useMemo(() => getTournamentFormatOptions(locale), [locale])
+  const currentStep = wizardSteps[stepIndex]
   const isFirstStep = stepIndex === 0
-  const isLastStep = stepIndex === WIZARD_STEPS.length - 1
+  const isLastStep = stepIndex === wizardSteps.length - 1
 
   const selectedPlayers = useMemo(
     () => players.filter((player) => state.playerIds.includes(player.id)),
@@ -80,8 +76,11 @@ export function TournamentCreateWizard({
     }
   }, [state])
 
-  const reviewErrors = useMemo(() => validateWizardReview(state), [state])
-  const configSummary = formatConfig ? getFormatConfigSummary(state, formatConfig) : []
+  const reviewErrors = useMemo(
+    () => validateWizardReview(state, t, locale),
+    [state, t, locale],
+  )
+  const configSummary = formatConfig ? getFormatConfigSummary(state, formatConfig, t) : []
 
   function updateState(partial: Partial<TournamentWizardState>) {
     setState((current) => ({ ...current, ...partial }))
@@ -90,7 +89,7 @@ export function TournamentCreateWizard({
   }
 
   function validateCurrentStep(): boolean {
-    const errors = validateWizardStep(currentStep.id, state)
+    const errors = validateWizardStep(currentStep.id, state, t, locale)
     setStepErrors(errors)
     return errors.length === 0
   }
@@ -100,7 +99,7 @@ export function TournamentCreateWizard({
       return
     }
 
-    setStepIndex((index) => Math.min(index + 1, WIZARD_STEPS.length - 1))
+    setStepIndex((index) => Math.min(index + 1, wizardSteps.length - 1))
     setStepErrors([])
   }
 
@@ -111,7 +110,7 @@ export function TournamentCreateWizard({
   }
 
   async function handleCreate() {
-    const errors = validateWizardReview(state)
+    const errors = validateWizardReview(state, t, locale)
     setStepErrors(errors)
 
     if (errors.length > 0) {
@@ -134,7 +133,7 @@ export function TournamentCreateWizard({
         state.playerIds,
       )
     } catch (error) {
-      setSubmitError(getErrorMessage(error))
+      setSubmitError(getErrorMessage(error, t))
     }
   }
 
@@ -144,16 +143,16 @@ export function TournamentCreateWizard({
         return (
           <div className="tournament-wizard__step-content">
             <p className="tournament-wizard__step-description">
-              Choose a name for your tournament. You can change other settings in the next steps.
+              {t('tournaments.wizard.basic.description')}
             </p>
             <label className="field">
-              <span className="field__label">Tournament name</span>
+              <span className="field__label">{t('tournaments.wizard.basic.tournamentName')}</span>
               <input
                 className="field__input"
                 type="text"
                 value={state.name}
                 onChange={(event) => updateState({ name: event.target.value })}
-                placeholder="Enter tournament name"
+                placeholder={t('tournaments.wizard.basic.namePlaceholder')}
                 autoFocus
                 disabled={isSubmitting}
               />
@@ -165,13 +164,16 @@ export function TournamentCreateWizard({
         return (
           <div className="tournament-wizard__step-content">
             <p className="tournament-wizard__step-description">
-              Select at least {MIN_TOURNAMENT_PLAYERS} players to participate.
+              {t('tournaments.wizard.players.description', { min: MIN_TOURNAMENT_PLAYERS })}
               {state.format === TournamentFormat.KNOCKOUT_ONLY &&
-                ' Knockout-only supports up to 16 players.'}
+                t('tournaments.wizard.players.knockoutOnlyNote')}
             </p>
             <div className="field">
               <span className="field__label">
-                Players ({state.playerIds.length} selected, minimum {MIN_TOURNAMENT_PLAYERS})
+                {t('tournaments.wizard.players.label', {
+                  selected: state.playerIds.length,
+                  min: MIN_TOURNAMENT_PLAYERS,
+                })}
               </span>
               <PlayerSelector
                 players={players}
@@ -187,12 +189,12 @@ export function TournamentCreateWizard({
         return (
           <div className="tournament-wizard__step-content">
             <p className="tournament-wizard__step-description">
-              Pick how matches will be structured for this tournament.
+              {t('tournaments.wizard.format.description')}
             </p>
             <fieldset className="tournament-form__format-fieldset">
-              <legend className="field__label">Tournament format</legend>
+              <legend className="field__label">{t('tournaments.wizard.format.legend')}</legend>
               <div className="tournament-form__format-options">
-                {TOURNAMENT_FORMAT_OPTIONS.map((option) => (
+                {formatOptions.map((option) => (
                   <label key={option.format} className="tournament-form__format-option">
                     <input
                       type="radio"
@@ -217,16 +219,22 @@ export function TournamentCreateWizard({
         return (
           <div className="tournament-wizard__step-content">
             <p className="tournament-wizard__step-description">
-              Configure options for <strong>{getFormatLabel(state.format)}</strong>.
+              {t('tournaments.wizard.configure.description', {
+                format: getTournamentFormatLabel(state.format, locale),
+              })}
             </p>
 
             {state.format === TournamentFormat.ROUND_ROBIN && (
-              <p className="tournament-wizard__info">No extra configuration is required for round robin.</p>
+              <p className="tournament-wizard__info">
+                {t('tournaments.wizard.configure.noExtraConfig')}
+              </p>
             )}
 
             {state.format === TournamentFormat.ROUND_ROBIN_PLAYOFFS && (
               <fieldset className="tournament-wizard__option-fieldset">
-                <legend className="field__label">Qualified players</legend>
+                <legend className="field__label">
+                  {t('tournaments.wizard.configure.qualifiedPlayers')}
+                </legend>
                 <div className="tournament-wizard__option-grid">
                   {PLAYOFF_QUALIFIER_OPTIONS.map((value: string) => (
                     <label key={value} className="tournament-wizard__option">
@@ -238,7 +246,7 @@ export function TournamentCreateWizard({
                         onChange={() => updateState({ playoffQualifiedCount: value })}
                         disabled={isSubmitting}
                       />
-                      <span>{value} players</span>
+                      <span>{t('tournaments.wizard.configure.playersCount', { count: value })}</span>
                     </label>
                   ))}
                 </div>
@@ -248,7 +256,9 @@ export function TournamentCreateWizard({
             {state.format === TournamentFormat.GROUPS_KNOCKOUT && (
               <>
                 <label className="field">
-                  <span className="field__label">Number of groups</span>
+                  <span className="field__label">
+                    {t('tournaments.wizard.configure.numberOfGroups')}
+                  </span>
                   <input
                     className="field__input"
                     type="number"
@@ -256,13 +266,15 @@ export function TournamentCreateWizard({
                     step={1}
                     value={state.groupCount}
                     onChange={(event) => updateState({ groupCount: event.target.value })}
-                    placeholder="e.g. 4"
+                    placeholder={t('tournaments.wizard.configure.groupsPlaceholder')}
                     disabled={isSubmitting}
                   />
                 </label>
 
                 <label className="field">
-                  <span className="field__label">Qualifiers per group</span>
+                  <span className="field__label">
+                    {t('tournaments.wizard.configure.qualifiersPerGroup')}
+                  </span>
                   <input
                     className="field__input"
                     type="number"
@@ -270,7 +282,7 @@ export function TournamentCreateWizard({
                     step={1}
                     value={state.qualifiersPerGroup}
                     onChange={(event) => updateState({ qualifiersPerGroup: event.target.value })}
-                    placeholder="e.g. 2"
+                    placeholder={t('tournaments.wizard.configure.qualifiersPlaceholder')}
                     disabled={isSubmitting}
                   />
                 </label>
@@ -279,13 +291,16 @@ export function TournamentCreateWizard({
 
             {state.format === TournamentFormat.KNOCKOUT_ONLY && (
               <div className="tournament-wizard__info-card">
-                <span className="tournament-wizard__info-label">Bracket size</span>
+                <span className="tournament-wizard__info-label">
+                  {t('tournaments.wizard.configure.bracketSize')}
+                </span>
                 <span className="tournament-wizard__info-value">
-                  {getKnockoutOnlyBracketSizeLabel(state.playerIds.length) ?? '—'}
+                  {getKnockoutOnlyBracketSizeLabel(state.playerIds.length) ?? t('common.emDash')}
                 </span>
                 <p className="tournament-wizard__info-hint">
-                  Auto-detected from {state.playerIds.length} selected player
-                  {state.playerIds.length === 1 ? '' : 's'}. Smaller brackets are padded with BYEs when needed.
+                  {t('tournaments.wizard.configure.bracketAutoDetected', {
+                    count: state.playerIds.length,
+                  })}
                 </p>
               </div>
             )}
@@ -296,31 +311,31 @@ export function TournamentCreateWizard({
         return (
           <div className="tournament-wizard__step-content">
             <p className="tournament-wizard__step-description">
-              Review your tournament settings before creating.
+              {t('tournaments.wizard.review.description')}
             </p>
 
             <dl className="tournament-wizard__review">
               <div className="tournament-wizard__review-row">
-                <dt>Name</dt>
-                <dd>{state.name.trim() || '—'}</dd>
+                <dt>{t('tournaments.wizard.review.name')}</dt>
+                <dd>{state.name.trim() || t('common.emDash')}</dd>
               </div>
               <div className="tournament-wizard__review-row">
-                <dt>Format</dt>
-                <dd>{getFormatLabel(state.format)}</dd>
+                <dt>{t('tournaments.wizard.review.format')}</dt>
+                <dd>{getTournamentFormatLabel(state.format, locale)}</dd>
               </div>
               <div className="tournament-wizard__review-row">
-                <dt>Players</dt>
+                <dt>{t('tournaments.wizard.review.players')}</dt>
                 <dd>
                   {selectedPlayers.length === 0
-                    ? 'None selected'
-                    : selectedPlayers.map((player) => player.name).join(', ')}
+                    ? t('tournaments.wizard.review.noneSelected')
+                    : selectedPlayers.map((player) => displayPlayerName(player.name, t)).join(', ')}
                 </dd>
               </div>
               <div className="tournament-wizard__review-row">
-                <dt>Configuration</dt>
+                <dt>{t('tournaments.wizard.review.configuration')}</dt>
                 <dd>
                   {configSummary.length === 0 ? (
-                    '—'
+                    t('common.emDash')
                   ) : (
                     <ul className="tournament-wizard__review-list">
                       {configSummary.map((line) => (
@@ -334,7 +349,9 @@ export function TournamentCreateWizard({
 
             {reviewErrors.length > 0 && (
               <div className="alert alert--error">
-                <p className="tournament-wizard__validation-title">Fix these issues before creating:</p>
+                <p className="tournament-wizard__validation-title">
+                  {t('tournaments.wizard.review.fixIssues')}
+                </p>
                 <ul className="tournament-wizard__validation-list">
                   {reviewErrors.map((error) => (
                     <li key={error}>{error}</li>
@@ -349,10 +366,10 @@ export function TournamentCreateWizard({
 
   return (
     <div className="tournament-wizard card">
-      <h2 className="tournament-wizard__title">Create Tournament</h2>
+      <h2 className="tournament-wizard__title">{t('tournaments.wizard.title')}</h2>
 
-      <ol className="tournament-wizard__steps" aria-label="Creation steps">
-        {WIZARD_STEPS.map((step, index) => {
+      <ol className="tournament-wizard__steps" aria-label={t('common.aria.creationSteps')}>
+        {wizardSteps.map((step, index) => {
           const isActive = index === stepIndex
           const isComplete = index < stepIndex
 
@@ -387,13 +404,13 @@ export function TournamentCreateWizard({
 
       <div className="tournament-wizard__actions">
         <button className="btn btn--ghost" type="button" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          {t('common.cancel')}
         </button>
 
         <div className="tournament-wizard__actions-nav">
           {!isFirstStep && (
             <button className="btn btn--ghost" type="button" onClick={handleBack} disabled={isSubmitting}>
-              Back
+              {t('common.back')}
             </button>
           )}
 
@@ -404,11 +421,11 @@ export function TournamentCreateWizard({
               onClick={() => void handleCreate()}
               disabled={isSubmitting || reviewErrors.length > 0}
             >
-              {isSubmitting ? 'Creating…' : 'Create Tournament'}
+              {isSubmitting ? t('common.creating') : t('tournaments.createTournament')}
             </button>
           ) : (
             <button className="btn btn--primary" type="button" onClick={handleNext} disabled={isSubmitting}>
-              Next
+              {t('common.next')}
             </button>
           )}
         </div>

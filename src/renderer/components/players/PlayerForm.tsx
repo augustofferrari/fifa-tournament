@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 import { PlayerPhoto } from './PlayerPhoto'
 
 export interface PlayerFormValues {
@@ -32,6 +33,7 @@ export function PlayerForm({
   onSubmit,
   onCancel,
 }: PlayerFormProps) {
+  const { t } = useAppTranslation()
   const [values, setValues] = useState<PlayerFormValues>(initialValues)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [isSelectingPhoto, setIsSelectingPhoto] = useState(false)
@@ -52,7 +54,7 @@ export function PlayerForm({
         setValues((current) => ({ ...current, photoPath }))
       }
     } catch (error) {
-      setPhotoError(error instanceof ApiError ? error.message : 'Failed to select photo')
+      setPhotoError(getErrorMessage(error, t))
     } finally {
       setIsSelectingPhoto(false)
     }
@@ -66,11 +68,15 @@ export function PlayerForm({
   return (
     <form className="player-form card" onSubmit={handleSubmit}>
       <h2 className="player-form__title">
-        {mode === 'create' ? 'Add Player' : 'Edit Player'}
+        {mode === 'create' ? t('players.form.addTitle') : t('players.form.editTitle')}
       </h2>
 
       <div className="player-form__photo">
-        <PlayerPhoto photoPath={values.photoPath} alt={values.name || 'Player photo'} size="lg" />
+        <PlayerPhoto
+          photoPath={values.photoPath}
+          alt={values.name || t('players.form.playerPhotoAlt')}
+          size="lg"
+        />
         <div className="player-form__photo-actions">
           <button
             className="btn btn--ghost"
@@ -78,7 +84,11 @@ export function PlayerForm({
             onClick={handleSelectPhoto}
             disabled={isSubmitting || isSelectingPhoto}
           >
-            {isSelectingPhoto ? 'Selecting…' : values.photoPath ? 'Change Photo' : 'Choose Photo'}
+            {isSelectingPhoto
+              ? t('common.selecting')
+              : values.photoPath
+                ? t('players.form.changePhoto')
+                : t('players.form.choosePhoto')}
           </button>
           {values.photoPath && (
             <button
@@ -87,7 +97,7 @@ export function PlayerForm({
               onClick={handleRemovePhoto}
               disabled={isSubmitting}
             >
-              Remove
+              {t('common.remove')}
             </button>
           )}
         </div>
@@ -95,46 +105,50 @@ export function PlayerForm({
       </div>
 
       <label className="field">
-        <span className="field__label">Name</span>
+        <span className="field__label">{t('common.name')}</span>
         <input
           className="field__input"
           type="text"
           value={values.name}
           onChange={(event) => setValues({ ...values, name: event.target.value })}
-          placeholder="Player name"
+          placeholder={t('players.form.namePlaceholder')}
           required
           autoFocus
         />
       </label>
 
       <label className="field">
-        <span className="field__label">Nickname</span>
+        <span className="field__label">{t('common.nickname')}</span>
         <input
           className="field__input"
           type="text"
           value={values.nickname}
           onChange={(event) => setValues({ ...values, nickname: event.target.value })}
-          placeholder="Optional nickname"
+          placeholder={t('players.form.nicknamePlaceholder')}
         />
       </label>
 
       <label className="field">
-        <span className="field__label">Team</span>
+        <span className="field__label">{t('common.team')}</span>
         <input
           className="field__input"
           type="text"
           value={values.teamName}
           onChange={(event) => setValues({ ...values, teamName: event.target.value })}
-          placeholder="Optional team name"
+          placeholder={t('players.form.teamPlaceholder')}
         />
       </label>
 
       <div className="player-form__actions">
         <button className="btn btn--ghost" type="button" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          {t('common.cancel')}
         </button>
         <button className="btn btn--primary" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : mode === 'create' ? 'Create Player' : 'Save Changes'}
+          {isSubmitting
+            ? t('common.saving')
+            : mode === 'create'
+              ? t('players.form.createPlayer')
+              : t('players.form.saveChanges')}
         </button>
       </div>
     </form>

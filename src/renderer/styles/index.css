@@ -178,6 +178,15 @@ body {
   max-width: 420px;
 }
 
+.settings-language {
+  margin-top: 1.5rem;
+  max-width: 520px;
+}
+
+.settings-language .card__meta {
+  margin-bottom: 1rem;
+}
+
 .settings-danger-zone {
   margin-top: 1.5rem;
   max-width: 520px;

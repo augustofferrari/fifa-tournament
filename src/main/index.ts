@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import { closeDatabase, initializeDatabase } from '@database'
+import { initializePreferencesService } from '@modules/app/preferences.service'
 import { initializePlayerPhotoService } from '@modules/players/player-photo.service'
 import { initializeStickerExportService } from '@modules/stickers/sticker-export.service'
 import { registerIpcHandlers } from './ipc'
@@ -9,6 +10,7 @@ function registerAppLifecycle(): void {
   app.whenReady().then(() => {
     const userDataPath = app.getPath('userData')
     initializeDatabase(userDataPath)
+    initializePreferencesService(userDataPath)
     initializePlayerPhotoService(userDataPath)
     initializeStickerExportService(userDataPath)
     registerIpcHandlers()
@@ -21,7 +23,7 @@ function registerAppLifecycle(): void {
       }
     })
   }).catch((error: unknown) => {
-    console.error('Failed to start MundialApp:', error)
+    console.error('Failed to start Torneito-app:', error)
     app.exit(1)
   })
 

@@ -1,1 +1,1 @@
-export const APP_NAME = 'MundialApp'
+export const APP_NAME = 'Torneito-app'

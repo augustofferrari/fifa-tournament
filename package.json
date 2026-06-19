@@ -1,7 +1,7 @@
 {
-  "name": "mundial-app",
+  "name": "torneito-app",
   "version": "0.1.0",
-  "description": "Electron + React + TypeScript desktop application",
+  "description": "Torneito-app — Electron + React + TypeScript desktop application",
   "main": "./out/main/index.js",
   "author": "",
   "license": "MIT",
@@ -25,8 +25,10 @@
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "html-to-image": "^1.11.13",
+    "i18next": "^26.3.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^17.0.8",
     "react-router-dom": "^7.18.0"
   },
   "devDependencies": {

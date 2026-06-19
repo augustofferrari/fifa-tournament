@@ -1,6 +1,7 @@
 import { getBracketRoundLabel, BRACKET_ROUND_DISPLAY_ORDER } from '@shared/tournament/bracket-round.utils'
 import {
   BracketSourceType,
+  BracketRound,
   type BracketMatch,
 } from '@shared/types/bracket-match'
 import type {

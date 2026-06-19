@@ -3,6 +3,8 @@ export type IpcErrorCode = 'VALIDATION' | 'NOT_FOUND' | 'INTERNAL'
 export interface IpcError {
   code: IpcErrorCode
   message: string
+  i18nKey?: string
+  i18nParams?: Record<string, string | number>
 }
 
 export interface IpcSuccess<T> {

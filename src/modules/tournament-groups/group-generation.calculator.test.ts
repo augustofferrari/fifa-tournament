@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { translate } from '@shared/i18n'
 import {
   buildSnakeGroupAssignments,
   distributePlayersSnake,
@@ -7,9 +8,9 @@ import {
 
 describe('group generation calculator', () => {
   it('names groups sequentially from Group A', () => {
-    expect(getGroupName(1)).toBe('Group A')
-    expect(getGroupName(2)).toBe('Group B')
-    expect(getGroupName(4)).toBe('Group D')
+    expect(getGroupName(1, 'en')).toBe(translate('errors.groupName', 'en', { letter: 'A' }))
+    expect(getGroupName(2, 'en')).toBe(translate('errors.groupName', 'en', { letter: 'B' }))
+    expect(getGroupName(4, 'en')).toBe(translate('errors.groupName', 'en', { letter: 'D' }))
   })
 
   it('distributes eight players across two groups using snake order', () => {

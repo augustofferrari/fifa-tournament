@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { Tournament } from '@shared/types/tournament'
 import type { TournamentPhase } from '@shared/types/tournament-phase'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 import {
   getGenerateKnockoutActionState,
   getGeneratePlayoffsActionState,
@@ -19,18 +20,6 @@ interface TournamentPhaseActionsProps {
   onError: (message: string | null) => void
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
 export function TournamentPhaseActions({
   tournament,
   phases,
@@ -40,6 +29,7 @@ export function TournamentPhaseActions({
   onPhaseChange,
   onError,
 }: TournamentPhaseActionsProps) {
+  const { t } = useAppTranslation()
   const [isGeneratingPlayoffs, setIsGeneratingPlayoffs] = useState(false)
   const [isGeneratingKnockout, setIsGeneratingKnockout] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -49,12 +39,14 @@ export function TournamentPhaseActions({
     phases,
     selectedPhase,
     matches,
+    t,
   )
   const knockoutAction = getGenerateKnockoutActionState(
     tournament,
     phases,
     selectedPhase,
     matches,
+    t,
   )
 
   if (!playoffsAction.visible && !knockoutAction.visible) {
@@ -78,7 +70,7 @@ export function TournamentPhaseActions({
       await onRefresh()
       onPhaseChange(result.playoffPhaseId)
     } catch (error) {
-      const message = getErrorMessage(error)
+      const message = getErrorMessage(error, t)
       setActionError(message)
       onError(message)
     } finally {
@@ -103,7 +95,7 @@ export function TournamentPhaseActions({
       await onRefresh()
       onPhaseChange(result.knockoutPhaseId)
     } catch (error) {
-      const message = getErrorMessage(error)
+      const message = getErrorMessage(error, t)
       setActionError(message)
       onError(message)
     } finally {
@@ -116,7 +108,9 @@ export function TournamentPhaseActions({
       {playoffsAction.visible && (
         <div className="tournament-phase-actions__block">
           <div className="tournament-phase-actions__copy">
-            <h3 className="tournament-phase-actions__title">Playoffs</h3>
+            <h3 className="tournament-phase-actions__title">
+              {t('tournaments.phaseActions.playoffs')}
+            </h3>
             {playoffsAction.hint && (
               <p className="tournament-phase-actions__hint">{playoffsAction.hint}</p>
             )}
@@ -127,7 +121,9 @@ export function TournamentPhaseActions({
             onClick={() => void handleGeneratePlayoffs()}
             disabled={!playoffsAction.enabled || isGeneratingPlayoffs}
           >
-            {isGeneratingPlayoffs ? 'Generating…' : 'Generate Playoffs'}
+            {isGeneratingPlayoffs
+              ? t('common.generating')
+              : t('tournaments.phaseActions.generatePlayoffs')}
           </button>
         </div>
       )}
@@ -135,7 +131,9 @@ export function TournamentPhaseActions({
       {knockoutAction.visible && (
         <div className="tournament-phase-actions__block">
           <div className="tournament-phase-actions__copy">
-            <h3 className="tournament-phase-actions__title">Knockout</h3>
+            <h3 className="tournament-phase-actions__title">
+              {t('tournaments.phaseActions.knockout')}
+            </h3>
             {knockoutAction.hint && (
               <p className="tournament-phase-actions__hint">{knockoutAction.hint}</p>
             )}
@@ -146,7 +144,9 @@ export function TournamentPhaseActions({
             onClick={() => void handleGenerateKnockout()}
             disabled={!knockoutAction.enabled || isGeneratingKnockout}
           >
-            {isGeneratingKnockout ? 'Generating…' : 'Generate Knockout'}
+            {isGeneratingKnockout
+              ? t('common.generating')
+              : t('tournaments.phaseActions.generateKnockout')}
           </button>
         </div>
       )}

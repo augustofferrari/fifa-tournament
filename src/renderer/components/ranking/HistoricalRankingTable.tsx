@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import type { PlayerHistoricalStats } from '@shared/types/historical-stats'
 import type { PlayerStreaks } from '@shared/types/player-streaks'
 import { getEmptyPlayerStreakDisplay, toPlayerStreakDisplay } from '@renderer/components/players/PlayerStreakStats'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 
 interface HistoricalRankingTableProps {
   rows: PlayerHistoricalStats[]
@@ -41,27 +43,29 @@ function getTopRowClass(position: number): string | undefined {
 }
 
 export function HistoricalRankingTable({ rows, streaksByPlayerId }: HistoricalRankingTableProps) {
+  const { t } = useAppTranslation()
+
   return (
     <div className="table-wrap card table-wrap--scroll">
       <table className="table ranking-table">
         <thead>
           <tr>
-            <th className="ranking-table__pos-col">#</th>
-            <th>Player</th>
-            <th>Tournaments</th>
-            <th>Won</th>
-            <th>Matches</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
-            <th>GF</th>
-            <th>GA</th>
-            <th>GD</th>
-            <th>Pts</th>
-            <th>Win rate</th>
-            <th>Win str</th>
-            <th>Best win</th>
-            <th>Unbeaten</th>
+            <th className="ranking-table__pos-col">{t('common.table.position')}</th>
+            <th>{t('ranking.table.player')}</th>
+            <th>{t('ranking.table.tournaments')}</th>
+            <th>{t('ranking.table.won')}</th>
+            <th>{t('ranking.table.matches')}</th>
+            <th>{t('common.table.w')}</th>
+            <th>{t('common.table.d')}</th>
+            <th>{t('common.table.l')}</th>
+            <th>{t('common.table.gf')}</th>
+            <th>{t('common.table.ga')}</th>
+            <th>{t('common.table.gd')}</th>
+            <th>{t('common.table.pts')}</th>
+            <th>{t('ranking.table.winRate')}</th>
+            <th>{t('ranking.table.winStr')}</th>
+            <th>{t('ranking.table.bestWin')}</th>
+            <th>{t('ranking.table.unbeaten')}</th>
           </tr>
         </thead>
         <tbody>
@@ -77,7 +81,7 @@ export function HistoricalRankingTable({ rows, streaksByPlayerId }: HistoricalRa
                 <td className="ranking-table__pos">{position}</td>
                 <td className="table__primary">
                   <Link className="table__link" to={`/players/${row.playerId}`}>
-                    {row.playerName}
+                    {displayPlayerName(row.playerName, t)}
                   </Link>
                 </td>
                 <td>{row.tournamentsPlayed}</td>

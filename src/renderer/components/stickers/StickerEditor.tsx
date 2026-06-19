@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
 import { StickerTier, type PlayerStickerTierInfo } from '@shared/types/sticker-tier'
 import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 import { captureStickerPreviewPng } from './capture-sticker-preview'
 import { StickerPreview, type StickerPreviewData } from './StickerPreview'
 import { StickerTierBadge } from './StickerTierBadge'
@@ -91,18 +92,6 @@ function buildPreviewData(
   }
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Failed to export sticker PNG'
-}
-
 export function playerToStickerEditorValues(
   player: Player,
   sticker?: Sticker | null,
@@ -125,14 +114,16 @@ export function StickerEditor({
   onExportSuccess,
   onExportError,
   lockPlayer = false,
-  exportButtonLabel = 'Export PNG',
+  exportButtonLabel,
   disabled = false,
   className,
 }: StickerEditorProps) {
+  const { t } = useAppTranslation()
   const previewRef = useRef<HTMLElement>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [playerTierInfo, setPlayerTierInfo] = useState(initialTierInfo)
   const [isLoadingTier, setIsLoadingTier] = useState(false)
+  const resolvedExportLabel = exportButtonLabel ?? t('stickers.modal.exportPng')
 
   useEffect(() => {
     setPlayerTierInfo(initialTierInfo)
@@ -208,11 +199,11 @@ export function StickerEditor({
       })
 
       onExportSuccess?.(
-        `Sticker PNG exported successfully (${result.generatedImagePath}).`,
+        t('stickers.editor.exportSuccess', { path: result.generatedImagePath }),
         result.sticker,
       )
     } catch (error) {
-      onExportError?.(getErrorMessage(error))
+      onExportError?.(getErrorMessage(error, t))
     } finally {
       setIsExporting(false)
     }
@@ -223,18 +214,18 @@ export function StickerEditor({
   return (
     <div className={rootClassName}>
       <div className="sticker-editor__form card">
-        <h2 className="sticker-editor__title">Sticker Details</h2>
+        <h2 className="sticker-editor__title">{t('stickers.editor.details')}</h2>
 
         {!lockPlayer ? (
           <label className="field">
-            <span className="field__label">Player</span>
+            <span className="field__label">{t('common.player')}</span>
             <select
               className="field__input"
               value={values.playerId}
               onChange={(event) => handlePlayerChange(event.target.value)}
               disabled={disabled || players.length === 0}
             >
-              <option value="">Select a player…</option>
+              <option value="">{t('stickers.editor.selectPlayer')}</option>
               {players.map((player) => (
                 <option key={player.id} value={player.id}>
                   {player.name}
@@ -264,29 +255,35 @@ export function StickerEditor({
         {values.playerId && (
           <div className="sticker-editor__performance card">
             <div className="sticker-editor__performance-header">
-              <h3 className="sticker-editor__performance-title">Performance tier</h3>
+              <h3 className="sticker-editor__performance-title">
+                {t('stickers.editor.performanceTier')}
+              </h3>
               <StickerTierBadge tier={playerTierInfo.tier} variant="editor" />
             </div>
             {isLoadingTier ? (
-              <p className="sticker-editor__performance-loading">Loading stats…</p>
+              <p className="sticker-editor__performance-loading">{t('stickers.editor.loadingStats')}</p>
             ) : (
               <dl className="sticker-editor__stats">
                 <div className="sticker-editor__stat">
-                  <dt>Titles won</dt>
+                  <dt>{t('stickers.editor.titlesWon')}</dt>
                   <dd>{playerTierInfo.tournamentsWon}</dd>
                 </div>
                 <div className="sticker-editor__stat">
-                  <dt>Goals</dt>
+                  <dt>{t('stickers.editor.goals')}</dt>
                   <dd>{playerTierInfo.goalsFor}</dd>
                 </div>
                 <div className="sticker-editor__stat">
-                  <dt>Win rate</dt>
+                  <dt>{t('stickers.editor.winRate')}</dt>
                   <dd>{formatStickerWinRate(playerTierInfo.winRate)}</dd>
                 </div>
                 {playerTierInfo.historicalRank !== null && (
                   <div className="sticker-editor__stat">
-                    <dt>Historical rank</dt>
-                    <dd>#{playerTierInfo.historicalRank}</dd>
+                    <dt>{t('stickers.editor.historicalRank')}</dt>
+                    <dd>
+                      {t('stickers.editor.historicalRankValue', {
+                        rank: playerTierInfo.historicalRank,
+                      })}
+                    </dd>
                   </div>
                 )}
               </dl>
@@ -295,32 +292,32 @@ export function StickerEditor({
         )}
 
         <label className="field">
-          <span className="field__label">Nickname</span>
+          <span className="field__label">{t('stickers.editor.nickname')}</span>
           <input
             className="field__input"
             type="text"
             value={values.nickname}
             onChange={(event) => updateValues({ nickname: event.target.value })}
-            placeholder="Sticker display name"
+            placeholder={t('stickers.editor.nicknamePlaceholder')}
             disabled={disabled}
           />
         </label>
 
         <label className="field">
-          <span className="field__label">Team Name</span>
+          <span className="field__label">{t('stickers.editor.teamName')}</span>
           <input
             className="field__input"
             type="text"
             value={values.teamName}
             onChange={(event) => updateValues({ teamName: event.target.value })}
-            placeholder="National team or club"
+            placeholder={t('stickers.editor.teamPlaceholder')}
             disabled={disabled}
           />
         </label>
 
         <div className="sticker-editor__row">
           <label className="field sticker-editor__field--half">
-            <span className="field__label">Rating</span>
+            <span className="field__label">{t('stickers.editor.rating')}</span>
             <input
               className="field__input"
               type="number"
@@ -328,20 +325,20 @@ export function StickerEditor({
               max={99}
               value={values.rating}
               onChange={(event) => updateValues({ rating: event.target.value })}
-              placeholder="OVR"
+              placeholder={t('stickers.editor.ratingPlaceholder')}
               disabled={disabled}
             />
           </label>
 
           <label className="field sticker-editor__field--half">
-            <span className="field__label">Position</span>
+            <span className="field__label">{t('stickers.editor.position')}</span>
             <input
               className="field__input"
               type="text"
               list="sticker-position-options"
               value={values.position}
               onChange={(event) => updateValues({ position: event.target.value.toUpperCase() })}
-              placeholder="e.g. ST"
+              placeholder={t('stickers.editor.positionPlaceholder')}
               disabled={disabled}
             />
             <datalist id="sticker-position-options">
@@ -353,23 +350,21 @@ export function StickerEditor({
         </div>
 
         <label className="field">
-          <span className="field__label">Theme</span>
+          <span className="field__label">{t('stickers.editor.theme')}</span>
           <input
             className="field__input"
             type="text"
             value={values.theme}
             onChange={(event) => updateValues({ theme: event.target.value })}
-            placeholder="world-cup"
+            placeholder={t('stickers.editor.themePlaceholder')}
             disabled={disabled}
           />
         </label>
       </div>
 
       <div className="sticker-editor__preview-panel">
-        <h2 className="sticker-editor__title">Live Preview</h2>
-        <p className="sticker-editor__preview-note">
-          Tier styling and historical stats are included in the exported PNG.
-        </p>
+        <h2 className="sticker-editor__title">{t('stickers.editor.livePreview')}</h2>
+        <p className="sticker-editor__preview-note">{t('stickers.editor.previewNote')}</p>
         <StickerPreview ref={previewRef} data={previewData} />
         <button
           className="btn btn--primary"
@@ -377,7 +372,7 @@ export function StickerEditor({
           onClick={() => void handleExportPng()}
           disabled={disabled || isExporting || !canExport}
         >
-          {isExporting ? 'Exporting…' : exportButtonLabel}
+          {isExporting ? t('common.exporting') : resolvedExportLabel}
         </button>
       </div>
     </div>

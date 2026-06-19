@@ -1,23 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError } from '@shared/ipc/errors'
 import type { PlayerHistoricalStats } from '@shared/types/historical-stats'
 import type { LatestMatchResult } from '@shared/types/latest-match-result'
 import type { Tournament } from '@shared/types/tournament'
 import { PageHeader } from '@renderer/components/PageHeader'
 import { LatestResultsWidget } from '@renderer/components/dashboard'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
+import { displayPlayerName } from '@renderer/i18n/display-utils'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 
 function hasPlayedMatches(rows: PlayerHistoricalStats[]): boolean {
   return rows.some((row) => row.matchesPlayed > 0)
@@ -29,6 +19,7 @@ function countPlayedMatches(rows: PlayerHistoricalStats[]): number {
 }
 
 export function DashboardPage() {
+  const { t } = useAppTranslation()
   const [playerCount, setPlayerCount] = useState(0)
   const [tournamentCount, setTournamentCount] = useState(0)
   const [activeTournamentCount, setActiveTournamentCount] = useState(0)
@@ -59,11 +50,11 @@ export function DashboardPage() {
       setLatestTournament(tournaments[0] ?? null)
       setLatestResults(results)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void loadDashboard()
@@ -71,49 +62,50 @@ export function DashboardPage() {
 
   return (
     <section className="page">
-      <PageHeader
-        title="Dashboard"
-        description="Overview of your players, tournaments, and quick shortcuts."
-      />
+      <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
 
       {error && <div className="alert alert--error">{error}</div>}
 
       {isLoading ? (
-        <div className="page__empty">Loading dashboard…</div>
+        <div className="page__empty">{t('dashboard.loading')}</div>
       ) : (
         <>
           <div className="page__grid dashboard__stats">
             <Link className="card card--link" to="/players">
-              <h2 className="card__title">Total players</h2>
+              <h2 className="card__title">{t('dashboard.stats.totalPlayers')}</h2>
               <p className="card__value">{playerCount}</p>
             </Link>
 
             <Link className="card card--link" to="/tournaments">
-              <h2 className="card__title">Total tournaments</h2>
+              <h2 className="card__title">{t('dashboard.stats.totalTournaments')}</h2>
               <p className="card__value">{tournamentCount}</p>
             </Link>
 
             <Link className="card card--link" to="/tournaments">
-              <h2 className="card__title">Active tournaments</h2>
+              <h2 className="card__title">{t('dashboard.stats.activeTournaments')}</h2>
               <p className="card__value">{activeTournamentCount}</p>
             </Link>
 
             <article className="card">
-              <h2 className="card__title">Total played matches</h2>
+              <h2 className="card__title">{t('dashboard.stats.totalPlayedMatches')}</h2>
               <p className="card__value">{playedMatchCount}</p>
             </article>
 
             {historicalLeader ? (
               <Link className="card card--link" to="/ranking">
-                <h2 className="card__title">Historical leader</h2>
-                <p className="card__value dashboard__leader-name">{historicalLeader.playerName}</p>
-                <p className="card__meta">{historicalLeader.points} pts</p>
+                <h2 className="card__title">{t('dashboard.stats.historicalLeader')}</h2>
+                <p className="card__value dashboard__leader-name">
+                  {displayPlayerName(historicalLeader.playerName, t)}
+                </p>
+                <p className="card__meta">
+                  {historicalLeader.points} {t('common.pts')}
+                </p>
               </Link>
             ) : (
               <article className="card">
-                <h2 className="card__title">Historical leader</h2>
-                <p className="card__value">—</p>
-                <p className="card__meta">No played matches yet</p>
+                <h2 className="card__title">{t('dashboard.stats.historicalLeader')}</h2>
+                <p className="card__value">{t('common.emDash')}</p>
+                <p className="card__meta">{t('dashboard.stats.noPlayedMatchesYet')}</p>
               </article>
             )}
           </div>
@@ -121,16 +113,18 @@ export function DashboardPage() {
           <LatestResultsWidget results={latestResults} />
 
           <section className="dashboard__section card">
-            <h2 className="dashboard__section-title">Quick links</h2>
+            <h2 className="dashboard__section-title">{t('dashboard.quickLinks.title')}</h2>
             <div className="page__grid dashboard__links">
               <Link className="card card--link dashboard__link-card" to="/ranking">
-                <h3 className="dashboard__link-title">Ranking</h3>
-                <p className="dashboard__link-desc">All-time player stats across every tournament</p>
+                <h3 className="dashboard__link-title">{t('dashboard.quickLinks.ranking.title')}</h3>
+                <p className="dashboard__link-desc">{t('dashboard.quickLinks.ranking.description')}</p>
               </Link>
 
               <Link className="card card--link dashboard__link-card" to="/head-to-head">
-                <h3 className="dashboard__link-title">Head to Head</h3>
-                <p className="dashboard__link-desc">Compare records between any two players</p>
+                <h3 className="dashboard__link-title">{t('dashboard.quickLinks.headToHead.title')}</h3>
+                <p className="dashboard__link-desc">
+                  {t('dashboard.quickLinks.headToHead.description')}
+                </p>
               </Link>
 
               {latestTournament ? (
@@ -138,16 +132,22 @@ export function DashboardPage() {
                   className="card card--link dashboard__link-card"
                   to={`/tournaments/${latestTournament.id}`}
                 >
-                  <h3 className="dashboard__link-title">Latest Tournament</h3>
+                  <h3 className="dashboard__link-title">
+                    {t('dashboard.quickLinks.latestTournament.title')}
+                  </h3>
                   <p className="dashboard__link-desc">{latestTournament.name}</p>
                   <span className={`status-badge status-badge--${latestTournament.status}`}>
-                    {latestTournament.status}
+                    {t(`common.status.${latestTournament.status}`)}
                   </span>
                 </Link>
               ) : (
                 <article className="card dashboard__link-card dashboard__link-card--empty">
-                  <h3 className="dashboard__link-title">Latest Tournament</h3>
-                  <p className="dashboard__link-desc">Create a tournament to get started</p>
+                  <h3 className="dashboard__link-title">
+                    {t('dashboard.quickLinks.latestTournament.title')}
+                  </h3>
+                  <p className="dashboard__link-desc">
+                    {t('dashboard.quickLinks.latestTournament.empty')}
+                  </p>
                 </article>
               )}
             </div>

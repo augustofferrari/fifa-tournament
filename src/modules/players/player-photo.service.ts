@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkS
 import { extname, join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { dialog } from 'electron'
-import { ValidationError } from './player.validation'
+import { createValidationError } from '@shared/validation/errors'
 
 const PHOTOS_FOLDER = 'photos'
 const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg'])
@@ -59,11 +59,11 @@ export class PlayerPhotoService {
     const extension = extname(sourcePath).toLowerCase()
 
     if (!ALLOWED_EXTENSIONS.has(extension)) {
-      throw new ValidationError('Photo must be a PNG, JPG, or JPEG image')
+      throw createValidationError('errors.photoMustBeImage')
     }
 
     if (!existsSync(sourcePath)) {
-      throw new ValidationError('Selected photo file was not found')
+      throw createValidationError('errors.photoFileNotFound')
     }
 
     this.ensurePhotosDirectory()

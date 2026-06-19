@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { translate } from '@shared/i18n'
 import type { Match } from '@shared/types/match'
 import { EMPTY_MATCH_PHASE_FIELDS } from '@shared/types/match'
 import type { StandingRow } from '@shared/types/standings'
@@ -95,20 +96,36 @@ describe('generateTournamentNarrative', () => {
       standings,
       awards,
       matches,
+      locale: 'en',
     })
 
     expect(narrative).toEqual({
       tournamentId: 't1',
       tournamentName: 'World Cup',
-      summary:
-        'World Cup wrapped up with 3 players, 3 matches played and 8 goals scored.',
-      championSummary:
-        'Alice lifted World Cup, finishing on 4 points (1W-1D-0L, 5 scored and 1 conceded) and holding off Bob for the crown.',
-      biggestSurprise:
-        'The favourites largely held firm in World Cup — no single result flipped the expected order.',
-      topScorerNote: 'Alice topped the scoring charts with 5 goals across 2 matches.',
-      defensivePlayerNote:
-        'Alice led the defensive standings, conceding just 1 goal in 2 matches.',
+      summary: translate('tournaments.narrative.summaryFinished_other', 'en', {
+        name: 'World Cup',
+        playerCount: 3,
+        matchCount: 3,
+        goalPhrase: translate('tournaments.narrative.goal_other', 'en', { count: 8 }),
+      }),
+      championSummary: translate('tournaments.narrative.championWithRunnerUp', 'en', {
+        champion: 'Alice',
+        name: 'World Cup',
+        points: 4,
+        record: translate('tournaments.narrative.recordFormat', 'en', { won: 1, drawn: 1, lost: 0 }),
+        goalLine: translate('tournaments.narrative.goalLine', 'en', { for: 5, against: 1 }),
+        runnerUp: 'Bob',
+      }),
+      biggestSurprise: translate('tournaments.narrative.favouritesHeld', 'en', { name: 'World Cup' }),
+      topScorerNote: translate('tournaments.narrative.topScorer_other', 'en', {
+        player: 'Alice',
+        goals: 5,
+        matches: 2,
+      }),
+      defensivePlayerNote: translate('tournaments.narrative.bestDefense_oneGoal_other', 'en', {
+        player: 'Alice',
+        matches: 2,
+      }),
     })
   })
 
@@ -131,10 +148,15 @@ describe('generateTournamentNarrative', () => {
       standings,
       awards,
       matches,
+      locale: 'en',
     })
 
     expect(narrative.biggestSurprise).toBe(
-      'Charlie delivered the biggest shock, beating higher-ranked Alice 2-1 against the standings grain.',
+      translate('tournaments.narrative.biggestUpset', 'en', {
+        winner: 'Charlie',
+        loser: 'Alice',
+        score: '2-1',
+      }),
     )
   })
 
@@ -162,22 +184,26 @@ describe('generateTournamentNarrative', () => {
       standings,
       awards,
       matches: [],
+      locale: 'en',
     })
 
     expect(narrative.summary).toBe(
-      'World Cup is ready to go with 3 players, waiting for the first results.',
+      translate('tournaments.narrative.readyNoResults_other', 'en', {
+        name: 'World Cup',
+        count: 3,
+      }),
     )
     expect(narrative.championSummary).toBe(
-      'The title race has not begun — no champion can be crowned yet.',
+      translate('tournaments.narrative.championNotBegun', 'en'),
     )
     expect(narrative.biggestSurprise).toBe(
-      'No surprises yet — the tournament is still waiting for its first result.',
+      translate('tournaments.narrative.noSurprisesYet', 'en'),
     )
     expect(narrative.topScorerNote).toBe(
-      'The scoring chart is empty until the first goals go in.',
+      translate('tournaments.narrative.scoringChartEmpty', 'en'),
     )
     expect(narrative.defensivePlayerNote).toBe(
-      'Defensive honours will be decided once the action starts.',
+      translate('tournaments.narrative.defensivePending', 'en'),
     )
   })
 })

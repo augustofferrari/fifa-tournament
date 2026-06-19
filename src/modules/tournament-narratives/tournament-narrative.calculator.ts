@@ -1,3 +1,4 @@
+import { translate, type Locale, DEFAULT_LOCALE } from '@shared/i18n'
 import type { Match } from '@shared/types/match'
 import type { StandingRow } from '@shared/types/standings'
 import type { Tournament } from '@shared/types/tournament'
@@ -9,6 +10,7 @@ export interface GenerateTournamentNarrativeInput {
   standings: StandingRow[]
   awards: TournamentAwards
   matches: Match[]
+  locale?: Locale
 }
 
 interface UpsetResult {
@@ -19,6 +21,10 @@ interface UpsetResult {
   winnerGoals: number
   loserGoals: number
   rankGap: number
+}
+
+function pluralNarrativeKey(suffix: string, count: number): string {
+  return `tournaments.narrative.${suffix}_${count === 1 ? 'one' : 'other'}`
 }
 
 function isPlayedMatch(match: Match): boolean {
@@ -97,6 +103,7 @@ function buildTournamentSummary(
   tournament: Tournament,
   standings: StandingRow[],
   matches: Match[],
+  locale: Locale,
 ): string {
   const playerCount = standings.length
   const playedMatches = countPlayedMatches(matches)
@@ -104,23 +111,34 @@ function buildTournamentSummary(
 
   if (playedMatches === 0) {
     if (playerCount === 0) {
-      return `${tournament.name} has not started yet — no players or results on the board.`
+      return translate('tournaments.narrative.notStartedNoPlayers', locale, {
+        name: tournament.name,
+      })
     }
 
-    return `${tournament.name} is ready to go with ${playerCount} ${playerCount === 1 ? 'player' : 'players'}, waiting for the first results.`
+    return translate(pluralNarrativeKey('readyNoResults', playerCount), locale, {
+      name: tournament.name,
+      count: playerCount,
+    })
   }
 
-  const statusPhrase =
+  const statusKey =
     tournament.status === 'finished'
-      ? 'wrapped up'
+      ? 'summaryFinished'
       : tournament.status === 'active'
-        ? 'is underway'
-        : 'has recorded'
+        ? 'summaryActive'
+        : 'summaryOther'
 
-  const goalPhrase =
-    totalGoals === 1 ? '1 goal' : `${totalGoals} goals`
+  const goalPhrase = translate(pluralNarrativeKey('goal', totalGoals), locale, {
+    count: totalGoals,
+  })
 
-  return `${tournament.name} ${statusPhrase} with ${playerCount} ${playerCount === 1 ? 'player' : 'players'}, ${playedMatches} ${playedMatches === 1 ? 'match' : 'matches'} played and ${goalPhrase} scored.`
+  return translate(pluralNarrativeKey(statusKey, playerCount), locale, {
+    name: tournament.name,
+    playerCount,
+    matchCount: playedMatches,
+    goalPhrase,
+  })
 }
 
 function buildChampionSummary(
@@ -128,9 +146,10 @@ function buildChampionSummary(
   standings: StandingRow[],
   awards: TournamentAwards,
   matches: Match[],
+  locale: Locale,
 ): string {
   if (countPlayedMatches(matches) === 0) {
-    return 'The title race has not begun — no champion can be crowned yet.'
+    return translate('tournaments.narrative.championNotBegun', locale)
   }
 
   const championRow = awards.champion
@@ -138,24 +157,50 @@ function buildChampionSummary(
     : standings[0] ?? null
 
   if (!championRow) {
-    return `${tournament.name} produced results, but no clear leader emerged from the standings.`
+    return translate('tournaments.narrative.noClearLeader', locale, { name: tournament.name })
   }
 
   const championName = awards.champion?.playerName ?? championRow.playerName
-  const record = `${championRow.won}W-${championRow.drawn}D-${championRow.lost}L`
-  const goalLine = `${championRow.goalsFor} scored and ${championRow.goalsAgainst} conceded`
+  const record = translate('tournaments.narrative.recordFormat', locale, {
+    won: championRow.won,
+    drawn: championRow.drawn,
+    lost: championRow.lost,
+  })
+  const goalLine = translate('tournaments.narrative.goalLine', locale, {
+    for: championRow.goalsFor,
+    against: championRow.goalsAgainst,
+  })
 
   if (tournament.status === 'finished' || awards.champion) {
     const runnerUpName = awards.runnerUp?.playerName
 
     if (runnerUpName) {
-      return `${championName} lifted ${tournament.name}, finishing on ${championRow.points} points (${record}, ${goalLine}) and holding off ${runnerUpName} for the crown.`
+      return translate('tournaments.narrative.championWithRunnerUp', locale, {
+        champion: championName,
+        name: tournament.name,
+        points: championRow.points,
+        record,
+        goalLine,
+        runnerUp: runnerUpName,
+      })
     }
 
-    return `${championName} lifted ${tournament.name}, finishing on ${championRow.points} points with a ${record} record and ${goalLine}.`
+    return translate('tournaments.narrative.championSolo', locale, {
+      champion: championName,
+      name: tournament.name,
+      points: championRow.points,
+      record,
+      goalLine,
+    })
   }
 
-  return `${championName} leads ${tournament.name} on ${championRow.points} points (${record}, ${goalLine}) as the standings favourite.`
+  return translate('tournaments.narrative.championLeading', locale, {
+    champion: championName,
+    name: tournament.name,
+    points: championRow.points,
+    record,
+    goalLine,
+  })
 }
 
 function buildBiggestSurpriseNote(
@@ -163,15 +208,20 @@ function buildBiggestSurpriseNote(
   standings: StandingRow[],
   awards: TournamentAwards,
   matches: Match[],
+  locale: Locale,
 ): string {
   if (countPlayedMatches(matches) === 0) {
-    return 'No surprises yet — the tournament is still waiting for its first result.'
+    return translate('tournaments.narrative.noSurprisesYet', locale)
   }
 
   const upset = findBiggestUpset(standings, matches)
 
   if (upset) {
-    return `${upset.winnerPlayerName} delivered the biggest shock, beating higher-ranked ${upset.loserPlayerName} ${upset.winnerGoals}-${upset.loserGoals} against the standings grain.`
+    return translate('tournaments.narrative.biggestUpset', locale, {
+      winner: upset.winnerPlayerName,
+      loser: upset.loserPlayerName,
+      score: `${upset.winnerGoals}-${upset.loserGoals}`,
+    })
   }
 
   const championId = awards.champion?.playerId ?? standings[0]?.playerId ?? null
@@ -184,7 +234,11 @@ function buildBiggestSurpriseNote(
     const mostWinsRow = standingRow(standings, awards.mostWins.playerId)
 
     if (mostWinsRow && mostWinsRow.won > 0) {
-      return `${awards.mostWins.playerName} won the most matches (${mostWinsRow.won}) yet still missed out on the title — the cruellest near-miss of ${tournament.name}.`
+      return translate('tournaments.narrative.mostWinsMiss', locale, {
+        player: awards.mostWins.playerName,
+        count: mostWinsRow.won,
+        name: tournament.name,
+      })
     }
   }
 
@@ -196,69 +250,97 @@ function buildBiggestSurpriseNote(
     const { winnerPlayerName, loserPlayerName, winnerGoals, loserGoals, goalDifference } =
       awards.biggestWin
 
-    return `${winnerPlayerName}'s ${winnerGoals}-${loserGoals} win over ${loserPlayerName} was the most dominant single result (+${goalDifference}), even without taking the trophy.`
+    return translate('tournaments.narrative.biggestWinDominant', locale, {
+      winner: winnerPlayerName,
+      score: `${winnerGoals}-${loserGoals}`,
+      loser: loserPlayerName,
+      diff: goalDifference,
+    })
   }
 
-  return `The favourites largely held firm in ${tournament.name} — no single result flipped the expected order.`
+  return translate('tournaments.narrative.favouritesHeld', locale, { name: tournament.name })
 }
 
-function buildTopScorerNote(standings: StandingRow[], awards: TournamentAwards, matches: Match[]): string {
+function buildTopScorerNote(
+  standings: StandingRow[],
+  awards: TournamentAwards,
+  matches: Match[],
+  locale: Locale,
+): string {
   if (countPlayedMatches(matches) === 0) {
-    return 'The scoring chart is empty until the first goals go in.'
+    return translate('tournaments.narrative.scoringChartEmpty', locale)
   }
 
   if (!awards.topScorer) {
-    return 'No player separated themselves in the scoring charts — goals were shared around.'
+    return translate('tournaments.narrative.goalsShared', locale)
   }
 
   const scorerRow = standingRow(standings, awards.topScorer.playerId)
 
   if (!scorerRow || scorerRow.goalsFor === 0) {
-    return 'No player separated themselves in the scoring charts — goals were shared around.'
+    return translate('tournaments.narrative.goalsShared', locale)
   }
 
-  const goalLabel = scorerRow.goalsFor === 1 ? '1 goal' : `${scorerRow.goalsFor} goals`
-
-  return `${awards.topScorer.playerName} topped the scoring charts with ${goalLabel} across ${scorerRow.played} ${scorerRow.played === 1 ? 'match' : 'matches'}.`
+  return translate(pluralNarrativeKey('topScorer', scorerRow.goalsFor), locale, {
+    player: awards.topScorer.playerName,
+    goals: scorerRow.goalsFor,
+    matches: scorerRow.played,
+  })
 }
 
 function buildDefensivePlayerNote(
   standings: StandingRow[],
   awards: TournamentAwards,
   matches: Match[],
+  locale: Locale,
 ): string {
   if (countPlayedMatches(matches) === 0) {
-    return 'Defensive honours will be decided once the action starts.'
+    return translate('tournaments.narrative.defensivePending', locale)
   }
 
   if (!awards.bestDefense) {
-    return 'No standout defensive record emerged from the results.'
+    return translate('tournaments.narrative.noDefensiveStandout', locale)
   }
 
   const defenseRow = standingRow(standings, awards.bestDefense.playerId)
 
   if (!defenseRow || defenseRow.played === 0) {
-    return 'No standout defensive record emerged from the results.'
+    return translate('tournaments.narrative.noDefensiveStandout', locale)
   }
 
-  const concededLabel =
-    defenseRow.goalsAgainst === 1 ? '1 goal' : `${defenseRow.goalsAgainst} goals`
+  if (defenseRow.goalsAgainst === 1 && defenseRow.played === 1) {
+    return translate('tournaments.narrative.bestDefense_one', locale, {
+      player: awards.bestDefense.playerName,
+      matches: defenseRow.played,
+    })
+  }
 
-  return `${awards.bestDefense.playerName} led the defensive standings, conceding just ${concededLabel} in ${defenseRow.played} ${defenseRow.played === 1 ? 'match' : 'matches'}.`
+  if (defenseRow.goalsAgainst === 1) {
+    return translate('tournaments.narrative.bestDefense_oneGoal_other', locale, {
+      player: awards.bestDefense.playerName,
+      matches: defenseRow.played,
+    })
+  }
+
+  return translate('tournaments.narrative.bestDefense_other', locale, {
+    player: awards.bestDefense.playerName,
+    goals: defenseRow.goalsAgainst,
+    matches: defenseRow.played,
+  })
 }
 
 export function generateTournamentNarrative(
   input: GenerateTournamentNarrativeInput,
 ): TournamentNarrative {
-  const { tournament, standings, awards, matches } = input
+  const { tournament, standings, awards, matches, locale = DEFAULT_LOCALE } = input
 
   return {
     tournamentId: tournament.id,
     tournamentName: tournament.name,
-    summary: buildTournamentSummary(tournament, standings, matches),
-    championSummary: buildChampionSummary(tournament, standings, awards, matches),
-    biggestSurprise: buildBiggestSurpriseNote(tournament, standings, awards, matches),
-    topScorerNote: buildTopScorerNote(standings, awards, matches),
-    defensivePlayerNote: buildDefensivePlayerNote(standings, awards, matches),
+    summary: buildTournamentSummary(tournament, standings, matches, locale),
+    championSummary: buildChampionSummary(tournament, standings, awards, matches, locale),
+    biggestSurprise: buildBiggestSurpriseNote(tournament, standings, awards, matches, locale),
+    topScorerNote: buildTopScorerNote(standings, awards, matches, locale),
+    defensivePlayerNote: buildDefensivePlayerNote(standings, awards, matches, locale),
   }
 }

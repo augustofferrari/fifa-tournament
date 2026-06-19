@@ -1,5 +1,10 @@
 import Database from 'better-sqlite3'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { initializePreferencesService, preferencesService } from '@modules/app/preferences.service'
+import { translate } from '@shared/i18n'
 import { createSchemaTables } from '../../database/migrations/schema'
 import { MatchRepository } from '../matches/match.repository'
 import { PlayerRepository } from '../players/player.repository'
@@ -28,6 +33,10 @@ describe('TournamentNarrativeService', () => {
   let tournamentNarrativeService: TournamentNarrativeService
 
   beforeEach(() => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'mundial-test-'))
+    initializePreferencesService(tempDir)
+    preferencesService.setLocale('en')
+
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     createSchemaTables(db)
@@ -63,7 +72,12 @@ describe('TournamentNarrativeService', () => {
     expect(narrative.tournamentId).toBe(tournament.id)
     expect(narrative.tournamentName).toBe('Finals')
     expect(narrative.summary).toBe(
-      'Finals wrapped up with 2 players, 1 match played and 4 goals scored.',
+      translate('tournaments.narrative.summaryFinished_other', 'en', {
+        name: 'Finals',
+        playerCount: 2,
+        matchCount: 1,
+        goalPhrase: translate('tournaments.narrative.goal_other', 'en', { count: 4 }),
+      }),
     )
     expect(narrative.championSummary).toContain('Alice')
     expect(narrative.championSummary).toContain('Bob')
@@ -75,7 +89,7 @@ describe('TournamentNarrativeService', () => {
 
   it('throws when the tournament does not exist', () => {
     expect(() => tournamentNarrativeService.getTournamentNarrative('missing-id')).toThrow(
-      'Tournament not found: missing-id',
+      translate('errors.tournamentNotFound', 'en', { id: 'missing-id' }),
     )
   })
 })

@@ -1,5 +1,9 @@
 import Database from 'better-sqlite3'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { initializePreferencesService, preferencesService } from '@modules/app/preferences.service'
 import { createSchemaTables } from '../../database/migrations/schema'
 import { PlayerRepository } from '../players/player.repository'
 import { TournamentPhaseRepository } from '../tournament-phases/tournament-phase.repository'
@@ -7,6 +11,7 @@ import { TournamentPhaseService } from '../tournament-phases/tournament-phase.se
 import { TournamentRepository } from '../tournaments/tournament.repository'
 import { ValidationError } from '../tournaments/tournament.validation'
 import { TournamentFormat } from '@shared/types/tournament-format'
+import { translate } from '@shared/i18n'
 import { GroupGenerationService } from './group-generation.service'
 import { TournamentGroupRepository } from './tournament-group.repository'
 
@@ -19,6 +24,10 @@ describe('GroupGenerationService', () => {
   let groupGenerationService: GroupGenerationService
 
   beforeEach(() => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'mundial-test-'))
+    initializePreferencesService(tempDir)
+    preferencesService.setLocale('en')
+
     db = new Database(':memory:')
     db.pragma('foreign_keys = ON')
     createSchemaTables(db)
@@ -83,7 +92,10 @@ describe('GroupGenerationService', () => {
     })
 
     expect(result.groups).toHaveLength(2)
-    expect(result.groups.map((group) => group.name)).toEqual(['Group A', 'Group B'])
+    expect(result.groups.map((group) => group.name)).toEqual([
+      translate('errors.groupName', 'en', { letter: 'A' }),
+      translate('errors.groupName', 'en', { letter: 'B' }),
+    ])
     expect(result.groups[0]?.players.map((player) => player.playerId)).toEqual([
       playerIds[0],
       playerIds[3],
@@ -114,13 +126,13 @@ describe('GroupGenerationService', () => {
   })
 
   it('requires enough players for all groups', () => {
-    const { tournament, playerIds } = createGroupStageTournament(['A', 'B', 'C'])
+    const { tournament, playerIds } = createGroupStageTournament(['A', 'B', 'C', 'D'])
 
     expect(() =>
       groupGenerationService.generateGroups({
         tournamentId: tournament.id,
         groupCount: 2,
-        playerIds,
+        playerIds: playerIds.slice(0, 3),
       }),
     ).toThrow('At least 4 players are required for 2 groups')
   })

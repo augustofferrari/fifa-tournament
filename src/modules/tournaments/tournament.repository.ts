@@ -28,6 +28,7 @@ import {
   ValidationError,
 } from './tournament.validation'
 import { createRemovedPlayer } from '@shared/validation'
+import { createValidationError } from '@shared/validation/errors'
 
 interface PlayerRow {
   id: string
@@ -95,7 +96,7 @@ export class TournamentRepository {
     const existing = this.getTournamentById(tournamentId)
 
     if (!existing) {
-      throw new ValidationError(`Tournament not found: ${tournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: tournamentId })
     }
 
     const updatedAt = nowIsoString()
@@ -112,7 +113,7 @@ export class TournamentRepository {
     const existing = this.getTournamentById(tournamentId)
 
     if (!existing) {
-      throw new ValidationError(`Tournament not found: ${tournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: tournamentId })
     }
 
     const updatedAt = nowIsoString()
@@ -169,7 +170,7 @@ export class TournamentRepository {
     const tournament = this.getTournamentById(validatedTournamentId)
 
     if (!tournament) {
-      throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validatedTournamentId })
     }
 
     const validatedPlayerIds = validateTournamentPlayerSelection(playerIds, tournament)
@@ -185,7 +186,7 @@ export class TournamentRepository {
         const player = findPlayer.get(playerId)
 
         if (!player) {
-          throw new ValidationError(`Player not found: ${playerId}`)
+          throw createValidationError('errors.playerNotFound', { id: playerId })
         }
 
         insertTournamentPlayer.run(randomUUID(), validatedTournamentId, playerId)
@@ -201,7 +202,7 @@ export class TournamentRepository {
     const validatedTournamentId = assertNonEmptyString(tournamentId, 'tournamentId')
 
     if (!this.getTournamentById(validatedTournamentId)) {
-      throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validatedTournamentId })
     }
 
     const rows = this.db
@@ -244,7 +245,7 @@ export class TournamentRepository {
     const tournament = this.getTournamentById(validatedTournamentId)
 
     if (!tournament) {
-      throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validatedTournamentId })
     }
 
     const players = this.getTournamentPlayersIncludingRemoved(validatedTournamentId)

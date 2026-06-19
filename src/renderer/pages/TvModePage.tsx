@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError } from '@shared/ipc/errors'
 import type { BracketView } from '@shared/types/bracket-view'
 import type { LatestMatchResult } from '@shared/types/latest-match-result'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { GroupStandings, StandingRow } from '@shared/types/standings'
 import type { Tournament } from '@shared/types/tournament'
-import { getTournamentFormatLabel } from '@shared/types/tournament-format'
-import type { TournamentPhase } from '@shared/types/tournament-phase'
+import { getTournamentFormatLabel } from '@shared/tournament/format-display.utils'
 import { getPhaseTabLabel } from '@shared/tournament/phase-display.utils'
+import type { TournamentPhase } from '@shared/types/tournament-phase'
 import {
   TvBracketPanel,
   TvGroupStandingsPanel,
@@ -19,28 +18,17 @@ import {
   TV_MODE_REFRESH_MS,
   buildPlayersById,
   filterLatestResultsForTournament,
-  formatPhaseStatus,
-  formatTournamentStatus,
   getNextMatchesForPhase,
   isBracketPhase,
   isGroupStandingsPhase,
   resolveDisplayPhase,
 } from '@renderer/components/tv'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 
 export function TvModePage() {
   const { tournamentId } = useParams<{ tournamentId: string }>()
+  const { t, locale } = useAppTranslation()
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [phases, setPhases] = useState<TournamentPhase[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -85,7 +73,7 @@ export function TvModePage() {
 
       if (!tournamentData) {
         setTournament(null)
-        setError('Tournament not found')
+        setError(t('tournaments.notFound'))
         return
       }
 
@@ -115,11 +103,11 @@ export function TvModePage() {
       setLatestResults(filterLatestResultsForTournament(latestResultData, tournamentId))
       setLastUpdatedAt(new Date())
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [tournamentId])
+  }, [t, tournamentId])
 
   useEffect(() => {
     void loadTournamentData()
@@ -139,10 +127,21 @@ export function TvModePage() {
     }
   }, [loadTournamentData, tournamentId])
 
+  function formatPhaseStatus(status: TournamentPhase['status']): string {
+    switch (status) {
+      case 'active':
+        return t('common.status.inProgress')
+      case 'completed':
+        return t('common.status.completed')
+      case 'pending':
+        return t('common.status.upcoming')
+    }
+  }
+
   if (!tournamentId) {
     return (
       <div className="tv-mode">
-        <div className="tv-mode__message">Missing tournament id.</div>
+        <div className="tv-mode__message">{t('tv.missingTournamentId')}</div>
       </div>
     )
   }
@@ -150,7 +149,7 @@ export function TvModePage() {
   if (isLoading && !tournament) {
     return (
       <div className="tv-mode">
-        <div className="tv-mode__message">Loading TV mode…</div>
+        <div className="tv-mode__message">{t('tv.loading')}</div>
       </div>
     )
   }
@@ -160,7 +159,7 @@ export function TvModePage() {
       <div className="tv-mode">
         <div className="tv-mode__message tv-mode__message--error">{error}</div>
         <Link className="tv-mode__exit" to={`/tournaments/${tournamentId}`}>
-          Back to tournament
+          {t('tv.backToTournament')}
         </Link>
       </div>
     )
@@ -169,7 +168,7 @@ export function TvModePage() {
   if (!tournament) {
     return (
       <div className="tv-mode">
-        <div className="tv-mode__message">Tournament not found.</div>
+        <div className="tv-mode__message">{t('tv.notFound')}</div>
       </div>
     )
   }
@@ -177,24 +176,26 @@ export function TvModePage() {
   return (
     <div className="tv-mode">
       <Link className="tv-mode__exit" to={`/tournaments/${tournamentId}`}>
-        Exit TV mode
+        {t('tv.exitTvMode')}
       </Link>
 
       <header className="tv-mode__header">
         <div className="tv-mode__heading">
           <h1 className="tv-mode__title">{tournament.name}</h1>
           <div className="tv-mode__badges">
-            <span className="tv-mode__badge">{getTournamentFormatLabel(tournament.format)}</span>
+            <span className="tv-mode__badge">
+              {getTournamentFormatLabel(tournament.format, locale)}
+            </span>
             <span className={`tv-mode__badge tv-mode__badge--${tournament.status}`}>
-              {formatTournamentStatus(tournament.status)}
+              {t(`common.status.${tournament.status}`)}
             </span>
           </div>
         </div>
 
         <div className="tv-mode__phase">
-          <span className="tv-mode__phase-label">Current phase</span>
+          <span className="tv-mode__phase-label">{t('tv.currentPhase')}</span>
           <strong className="tv-mode__phase-name">
-            {displayPhase ? getPhaseTabLabel(displayPhase.phaseType) : '—'}
+            {displayPhase ? getPhaseTabLabel(displayPhase.phaseType, locale) : t('common.emDash')}
           </strong>
           {displayPhase && (
             <span className={`tv-mode__phase-status tv-mode__phase-status--${displayPhase.status}`}>
@@ -221,8 +222,8 @@ export function TvModePage() {
             )}
           {!displayPhase && (
             <section className="tv-panel tv-panel--main">
-              <h2 className="tv-panel__title">Tournament</h2>
-              <p className="tv-panel__empty">No phases available yet.</p>
+              <h2 className="tv-panel__title">{t('tv.tournament')}</h2>
+              <p className="tv-panel__empty">{t('tv.noPhases')}</p>
             </section>
           )}
         </div>
@@ -235,7 +236,7 @@ export function TvModePage() {
 
       {lastUpdatedAt && (
         <footer className="tv-mode__footer">
-          Updated {lastUpdatedAt.toLocaleTimeString()}
+          {t('tv.updated', { time: lastUpdatedAt.toLocaleTimeString() })}
         </footer>
       )}
     </div>

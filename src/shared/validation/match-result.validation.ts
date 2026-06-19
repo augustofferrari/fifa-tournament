@@ -1,7 +1,7 @@
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
 import type { Tournament } from '@shared/types/tournament'
 import type { TournamentPhase } from '@shared/types/tournament-phase'
-import { ValidationError } from './errors'
+import { ValidationError, createValidationError } from './errors'
 import { ValidationMessages } from './messages'
 
 export function phaseAllowsDraws(phaseType: TournamentPhaseType): boolean {
@@ -20,7 +20,7 @@ export function validateMatchResultGoals(homeGoals: unknown, awayGoals: unknown)
 
 function assertNonNegativeGoal(value: unknown): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
-    throw new ValidationError(ValidationMessages.goalsCannotBeNegative)
+    throw createValidationError(ValidationMessages.goalsCannotBeNegative)
   }
 
   return value
@@ -32,7 +32,7 @@ export function validateMatchResultForPhase(
   awayGoals: number,
 ): void {
   if (!phaseAllowsDraws(phaseType) && homeGoals === awayGoals) {
-    throw new ValidationError(ValidationMessages.knockoutRequiresWinner)
+    throw createValidationError(ValidationMessages.knockoutRequiresWinner)
   }
 }
 
@@ -50,7 +50,7 @@ export function assertTournamentAllowsResultEditing(
   tournament: Pick<Tournament, 'status' | 'resultsUnlocked'>,
 ): void {
   if (tournament.status === 'finished' && !tournament.resultsUnlocked) {
-    throw new ValidationError(ValidationMessages.finishedTournamentResultsLocked)
+    throw createValidationError(ValidationMessages.finishedTournamentResultsLocked)
   }
 }
 

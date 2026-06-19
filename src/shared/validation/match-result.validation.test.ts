@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
+import { translate } from '@shared/i18n'
 import { ValidationError } from './errors'
 import { ValidationMessages } from './messages'
 import {
@@ -29,8 +30,12 @@ describe('validateMatchResultGoals', () => {
   })
 
   it('rejects negative and non-integer goals', () => {
-    expect(() => validateMatchResultGoals(-1, 0)).toThrow(ValidationMessages.goalsCannotBeNegative)
-    expect(() => validateMatchResultGoals(1.5, 0)).toThrow(ValidationMessages.goalsCannotBeNegative)
+    expect(() => validateMatchResultGoals(-1, 0)).toThrow(
+      translate(ValidationMessages.goalsCannotBeNegative, 'en'),
+    )
+    expect(() => validateMatchResultGoals(1.5, 0)).toThrow(
+      translate(ValidationMessages.goalsCannotBeNegative, 'en'),
+    )
   })
 })
 
@@ -47,7 +52,7 @@ describe('validateMatchResultForPhase', () => {
     ).toThrow(ValidationError)
     expect(() =>
       validateMatchResultForPhase(TournamentPhaseType.PLAYOFF, 0, 0),
-    ).toThrow(ValidationMessages.knockoutRequiresWinner)
+    ).toThrow(translate(ValidationMessages.knockoutRequiresWinner, 'en'))
   })
 })
 
@@ -63,7 +68,7 @@ describe('finished tournament result editing', () => {
   it('blocks editing when finished and locked', () => {
     expect(() =>
       assertTournamentAllowsResultEditing({ status: 'finished', resultsUnlocked: false }),
-    ).toThrow(ValidationMessages.finishedTournamentResultsLocked)
+    ).toThrow(translate(ValidationMessages.finishedTournamentResultsLocked, 'en'))
   })
 
   it('allows editing when finished and unlocked', () => {

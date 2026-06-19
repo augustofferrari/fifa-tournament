@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useState } from 'react'
 import { StickerTier } from '@shared/types/sticker-tier'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 import { StickerTierBadge } from './StickerTierBadge'
 import { formatStickerWinRate } from './sticker-stats-utils'
 import { getStickerTierClassName } from './sticker-tier-utils'
@@ -70,11 +71,11 @@ interface StickerPreviewProps {
   className?: string
 }
 
-function formatThemeLabel(theme: string): string {
+function formatThemeLabel(theme: string, defaultTheme: string): string {
   const trimmed = theme.trim()
 
   if (!trimmed) {
-    return 'WORLD CUP ALBUM'
+    return defaultTheme
   }
 
   return trimmed
@@ -82,10 +83,6 @@ function formatThemeLabel(theme: string): string {
     .filter(Boolean)
     .map((word) => word.toUpperCase())
     .join(' ')
-}
-
-function displayName(data: StickerPreviewData): string {
-  return data.nickname.trim() || data.playerName.trim() || 'Player Name'
 }
 
 const EMPTY_STATS: StickerPreviewStats = {
@@ -98,10 +95,11 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
   { data, className },
   ref,
 ) {
-  const themeLabel = formatThemeLabel(data.theme)
-  const name = displayName(data)
-  const team = data.teamName.trim() || 'National Team'
-  const position = data.position.trim().toUpperCase() || '—'
+  const { t } = useAppTranslation()
+  const themeLabel = formatThemeLabel(data.theme, t('stickers.preview.defaultTheme'))
+  const name = data.nickname.trim() || data.playerName.trim() || t('stickers.preview.defaultPlayerName')
+  const team = data.teamName.trim() || t('stickers.preview.defaultTeam')
+  const position = data.position.trim().toUpperCase() || t('common.none')
   const rating = data.rating !== null && data.rating >= 0 ? data.rating : null
   const tier = data.tier ?? StickerTier.BRONZE
   const stats = data.stats ?? EMPTY_STATS
@@ -115,14 +113,14 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
     .join(' ')
 
   return (
-    <article ref={ref} className={rootClassName} aria-label={`Sticker preview for ${name}`}>
+    <article ref={ref} className={rootClassName} aria-label={t('stickers.preview.ariaPreview', { name })}>
       <div className="sticker-preview__frame">
         <div className="sticker-preview__perforation" aria-hidden />
 
         <div className="sticker-preview__card">
           <header className="sticker-preview__header">
             <div className="sticker-preview__header-top">
-              <span className="sticker-preview__brand">Mundial Album</span>
+              <span className="sticker-preview__brand">{t('stickers.preview.brand')}</span>
               <StickerTierBadge tier={tier} variant="header" />
             </div>
             <span className="sticker-preview__theme">{themeLabel}</span>
@@ -134,7 +132,7 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
             {rating !== null && (
               <div className="sticker-preview__badge sticker-preview__badge--rating">
                 <span className="sticker-preview__rating-value">{rating}</span>
-                <span className="sticker-preview__rating-label">OVR</span>
+                <span className="sticker-preview__rating-label">{t('stickers.preview.ovr')}</span>
               </div>
             )}
 
@@ -142,18 +140,18 @@ export const StickerPreview = forwardRef<HTMLElement, StickerPreviewProps>(funct
               <StickerPreviewPhoto photoPath={data.photoPath} alt={name} />
             </div>
 
-            <div className="sticker-preview__stats" aria-label="Historical stats">
+            <div className="sticker-preview__stats" aria-label={t('stickers.preview.ariaHistoricalStats')}>
               <div className="sticker-preview__stat">
                 <span className="sticker-preview__stat-value">{stats.tournamentsWon}</span>
-                <span className="sticker-preview__stat-label">Titles</span>
+                <span className="sticker-preview__stat-label">{t('stickers.preview.titles')}</span>
               </div>
               <div className="sticker-preview__stat">
                 <span className="sticker-preview__stat-value">{stats.goalsFor}</span>
-                <span className="sticker-preview__stat-label">Goals</span>
+                <span className="sticker-preview__stat-label">{t('stickers.preview.goals')}</span>
               </div>
               <div className="sticker-preview__stat">
                 <span className="sticker-preview__stat-value">{formatStickerWinRate(stats.winRate)}</span>
-                <span className="sticker-preview__stat-label">Win rate</span>
+                <span className="sticker-preview__stat-label">{t('stickers.preview.winRate')}</span>
               </div>
             </div>
           </div>

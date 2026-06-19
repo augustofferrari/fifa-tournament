@@ -1,13 +1,15 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { Player } from '@shared/types/player'
 import type { CreateTournamentInput } from '@shared/types/tournament'
+import { getTournamentFormatOptions } from '@shared/tournament/format-display.utils'
 import {
   DEFAULT_TOURNAMENT_FORMAT,
-  TOURNAMENT_FORMAT_OPTIONS,
   TournamentFormat,
 } from '@shared/types/tournament-format'
-import { MIN_TOURNAMENT_PLAYERS, ValidationError, ValidationMessages } from '@shared/validation'
+import { MIN_TOURNAMENT_PLAYERS, ValidationMessages } from '@shared/validation'
 import { validateTournamentFormatConfig } from '@shared/validation/tournament-format'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 import { PlayerSelector } from './PlayerSelector'
 
 export interface TournamentCreateFormValues {
@@ -26,24 +28,13 @@ interface TournamentCreateFormProps {
   onCancel: () => void
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ValidationError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
 export function TournamentCreateForm({
   players,
   isSubmitting,
   onSubmit,
   onCancel,
 }: TournamentCreateFormProps) {
+  const { t, locale } = useAppTranslation()
   const [name, setName] = useState('')
   const [format, setFormat] = useState<TournamentFormat>(DEFAULT_TOURNAMENT_FORMAT)
   const [playoffQualifiedCount, setPlayoffQualifiedCount] = useState('')
@@ -52,9 +43,11 @@ export function TournamentCreateForm({
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([])
   const [validationError, setValidationError] = useState<string | null>(null)
 
+  const formatOptions = useMemo(() => getTournamentFormatOptions(locale), [locale])
+
   const selectedFormatOption = useMemo(
-    () => TOURNAMENT_FORMAT_OPTIONS.find((option) => option.format === format),
-    [format],
+    () => formatOptions.find((option) => option.format === format),
+    [format, formatOptions],
   )
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -64,12 +57,12 @@ export function TournamentCreateForm({
     const trimmedName = name.trim()
 
     if (!trimmedName) {
-      setValidationError(ValidationMessages.tournamentNameRequired)
+      setValidationError(t(ValidationMessages.tournamentNameRequired))
       return
     }
 
     if (selectedPlayerIds.length < MIN_TOURNAMENT_PLAYERS) {
-      setValidationError(ValidationMessages.tournamentMinPlayers)
+      setValidationError(t(ValidationMessages.tournamentMinPlayers))
       return
     }
 
@@ -92,31 +85,31 @@ export function TournamentCreateForm({
         selectedPlayerIds,
       )
     } catch (error) {
-      setValidationError(getErrorMessage(error))
+      setValidationError(getErrorMessage(error, t))
     }
   }
 
   return (
     <form className="tournament-form card" onSubmit={handleSubmit}>
-      <h2 className="tournament-form__title">Create Tournament</h2>
+      <h2 className="tournament-form__title">{t('tournaments.createForm.title')}</h2>
 
       <label className="field">
-        <span className="field__label">Tournament Name</span>
+        <span className="field__label">{t('tournaments.createForm.tournamentName')}</span>
         <input
           className="field__input"
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Enter tournament name"
+          placeholder={t('tournaments.createForm.namePlaceholder')}
           required
           autoFocus
         />
       </label>
 
       <fieldset className="tournament-form__format-fieldset">
-        <legend className="field__label">Tournament Format</legend>
+        <legend className="field__label">{t('tournaments.createForm.formatLegend')}</legend>
         <div className="tournament-form__format-options">
-          {TOURNAMENT_FORMAT_OPTIONS.map((option) => (
+          {formatOptions.map((option) => (
             <label key={option.format} className="tournament-form__format-option">
               <input
                 type="radio"
@@ -141,7 +134,7 @@ export function TournamentCreateForm({
 
       {format === TournamentFormat.ROUND_ROBIN_PLAYOFFS && (
         <label className="field">
-          <span className="field__label">Teams qualifying for playoffs</span>
+          <span className="field__label">{t('tournaments.createForm.teamsQualifyingPlayoffs')}</span>
           <input
             className="field__input"
             type="number"
@@ -149,7 +142,7 @@ export function TournamentCreateForm({
             step={1}
             value={playoffQualifiedCount}
             onChange={(event) => setPlayoffQualifiedCount(event.target.value)}
-            placeholder="e.g. 4"
+            placeholder={t('tournaments.createForm.examplePlaceholder', { value: 4 })}
             required
             disabled={isSubmitting}
           />
@@ -159,7 +152,7 @@ export function TournamentCreateForm({
       {format === TournamentFormat.GROUPS_KNOCKOUT && (
         <>
           <label className="field">
-            <span className="field__label">Number of groups</span>
+            <span className="field__label">{t('tournaments.createForm.numberOfGroups')}</span>
             <input
               className="field__input"
               type="number"
@@ -167,14 +160,14 @@ export function TournamentCreateForm({
               step={1}
               value={groupCount}
               onChange={(event) => setGroupCount(event.target.value)}
-              placeholder="e.g. 4"
+              placeholder={t('tournaments.createForm.examplePlaceholder', { value: 4 })}
               required
               disabled={isSubmitting}
             />
           </label>
 
           <label className="field">
-            <span className="field__label">Players per group</span>
+            <span className="field__label">{t('tournaments.createForm.playersPerGroup')}</span>
             <input
               className="field__input"
               type="number"
@@ -182,14 +175,14 @@ export function TournamentCreateForm({
               step={1}
               value={playersPerGroup}
               onChange={(event) => setPlayersPerGroup(event.target.value)}
-              placeholder="e.g. 4"
+              placeholder={t('tournaments.createForm.examplePlaceholder', { value: 4 })}
               required
               disabled={isSubmitting}
             />
           </label>
 
           <label className="field">
-            <span className="field__label">Qualifiers per group</span>
+            <span className="field__label">{t('tournaments.createForm.qualifiersPerGroup')}</span>
             <input
               className="field__input"
               type="number"
@@ -197,7 +190,7 @@ export function TournamentCreateForm({
               step={1}
               value={playoffQualifiedCount}
               onChange={(event) => setPlayoffQualifiedCount(event.target.value)}
-              placeholder="e.g. 2"
+              placeholder={t('tournaments.createForm.examplePlaceholder', { value: 2 })}
               required
               disabled={isSubmitting}
             />
@@ -207,7 +200,10 @@ export function TournamentCreateForm({
 
       <div className="field">
         <span className="field__label">
-          Players ({selectedPlayerIds.length} selected, minimum {MIN_TOURNAMENT_PLAYERS})
+          {t('tournaments.createForm.playersLabel', {
+            selected: selectedPlayerIds.length,
+            min: MIN_TOURNAMENT_PLAYERS,
+          })}
         </span>
         <PlayerSelector
           players={players}
@@ -221,10 +217,10 @@ export function TournamentCreateForm({
 
       <div className="tournament-form__actions">
         <button className="btn btn--ghost" type="button" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          {t('common.cancel')}
         </button>
         <button className="btn btn--primary" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating…' : 'Create Tournament'}
+          {isSubmitting ? t('common.creating') : t('tournaments.createTournament')}
         </button>
       </div>
     </form>

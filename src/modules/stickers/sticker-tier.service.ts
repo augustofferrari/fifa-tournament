@@ -5,7 +5,8 @@ import {
   buildPlayerStickerTierInfo,
   getHistoricalRank,
 } from './sticker-tier.calculator'
-import { assertNonEmptyString, ValidationError } from './sticker.validation'
+import { assertNonEmptyString } from './sticker.validation'
+import { createValidationError } from '@shared/validation/errors'
 
 export class StickerTierService {
   constructor(
@@ -27,7 +28,7 @@ export class StickerTierService {
     const stats = rankedPlayers.find((player) => player.playerId === validatedPlayerId)
 
     if (!stats) {
-      throw new ValidationError(`Player not found: ${validatedPlayerId}`)
+      throw createValidationError('errors.playerNotFound', { id: validatedPlayerId })
     }
 
     return {

@@ -1,4 +1,5 @@
 import { BrowserWindow } from 'electron'
+import { APP_NAME } from '@shared/constants'
 import { getPreloadPath, getRendererPath, getRendererUrl, WINDOW_DEFAULTS } from './config'
 
 const tvModeWindows = new Map<string, BrowserWindow>()
@@ -32,7 +33,7 @@ export function openTvModeWindow(tournamentId: string): void {
     ...WINDOW_DEFAULTS,
     show: false,
     autoHideMenuBar: true,
-    title: 'MundialApp — TV Mode',
+    title: `${APP_NAME} — TV Mode`,
     backgroundColor: '#070b14',
     webPreferences: {
       preload: getPreloadPath(),

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, unlinkSync, writeFileSync } from 'n
 import { join, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { ValidationError } from './sticker.validation'
+import { createValidationError } from '@shared/validation/errors'
 
 const STICKERS_FOLDER = 'stickers'
 const PNG_DATA_URL_PATTERN = /^data:image\/png;base64,/
@@ -29,14 +29,14 @@ export class StickerExportService {
 
   savePngFromDataUrl(dataUrl: string): string {
     if (!PNG_DATA_URL_PATTERN.test(dataUrl)) {
-      throw new ValidationError('Sticker export must be a PNG data URL')
+      throw createValidationError('errors.stickerExportMustBePng')
     }
 
     const base64Data = dataUrl.replace(PNG_DATA_URL_PATTERN, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
     if (buffer.length === 0) {
-      throw new ValidationError('Sticker export image data is empty')
+      throw createValidationError('errors.stickerExportEmpty')
     }
 
     this.ensureStickersDirectory()

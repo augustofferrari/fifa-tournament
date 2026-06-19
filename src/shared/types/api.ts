@@ -18,11 +18,15 @@ import type { StickersNamespace } from './stickers-api'
 import type { TournamentsNamespace } from './tournaments-api'
 import type { WindowsNamespace } from './windows-api'
 
+import type { Locale } from '@shared/i18n'
+
 export type PingResponse = 'pong'
 
 export interface AppNamespace {
   platform: Platform
   ping(): Promise<PingResponse>
+  getLocale(): Promise<Locale>
+  setLocale(locale: Locale): Promise<Locale>
   resetAllData(): Promise<void>
 }
 

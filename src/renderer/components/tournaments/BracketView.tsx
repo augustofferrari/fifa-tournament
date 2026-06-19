@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { BracketView, BracketViewMatch } from '@shared/types/bracket-view'
 import type { TournamentPhase } from '@shared/types/tournament-phase'
 import { getPlayerDisplayName } from '@shared/validation'
-import { matchStatusLabel } from '@renderer/utils/matches'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 import { MatchResultModal } from './MatchResultModal'
 
 interface BracketViewProps {
@@ -14,26 +15,6 @@ interface BracketViewProps {
   readOnly?: boolean
   onRefresh: () => Promise<void>
   refreshTrigger?: unknown
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
-function getBracketMatchStatusLabel(status: BracketViewMatch['status']): string {
-  if (status === 'pending') {
-    return 'Pending'
-  }
-
-  return matchStatusLabel(status)
 }
 
 function BracketMatchCard({
@@ -45,12 +26,19 @@ function BracketMatchCard({
   readOnly: boolean
   onSelect: (matchId: string) => void
 }) {
+  const { t } = useAppTranslation()
+
+  const homeLabel = displayPlayerName(match.home.label, t)
+  const awayLabel = displayPlayerName(match.away.label, t)
+
   const content = (
     <>
       <div className="bracket-view__match-header">
-        <span className="bracket-view__match-label">Match {match.bracketPosition}</span>
+        <span className="bracket-view__match-label">
+          {t('common.match', { number: match.bracketPosition })}
+        </span>
         <span className={`status-badge status-badge--match-${match.status}`}>
-          {getBracketMatchStatusLabel(match.status)}
+          {t(`common.status.${match.status}`)}
         </span>
       </div>
 
@@ -58,24 +46,26 @@ function BracketMatchCard({
         <div
           className={`bracket-view__participant${match.home.isPending ? ' bracket-view__participant--pending' : ''}`}
         >
-          <span className="bracket-view__participant-name">{match.home.label}</span>
+          <span className="bracket-view__participant-name">{homeLabel}</span>
           <span className="bracket-view__participant-score">
-            {match.home.score ?? '–'}
+            {match.home.score ?? t('common.emDash')}
           </span>
         </div>
         <div
           className={`bracket-view__participant${match.away.isPending ? ' bracket-view__participant--pending' : ''}`}
         >
-          <span className="bracket-view__participant-name">{match.away.label}</span>
+          <span className="bracket-view__participant-name">{awayLabel}</span>
           <span className="bracket-view__participant-score">
-            {match.away.score ?? '–'}
+            {match.away.score ?? t('common.emDash')}
           </span>
         </div>
       </div>
 
       {match.canEnterResult && !readOnly && (
         <span className="bracket-view__match-action">
-          {match.status === 'played' ? 'Edit result' : 'Enter result'}
+          {match.status === 'played'
+            ? t('tournaments.match.editResult')
+            : t('tournaments.match.enterResult')}
         </span>
       )}
     </>
@@ -103,6 +93,7 @@ export function BracketViewComponent({
   onRefresh,
   refreshTrigger,
 }: BracketViewProps) {
+  const { t } = useAppTranslation()
   const [bracketView, setBracketView] = useState<BracketView | null>(null)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -116,11 +107,11 @@ export function BracketViewComponent({
       const data = await window.api.tournaments.getBracketView(phase.id)
       setBracketView(data)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [phase.id])
+  }, [phase.id, t])
 
   useEffect(() => {
     void loadBracketView()
@@ -132,7 +123,7 @@ export function BracketViewComponent({
       const match = tournamentMatches.find((entry) => entry.id === matchId) ?? null
       setSelectedMatch(match)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     }
   }
 
@@ -156,16 +147,16 @@ export function BracketViewComponent({
   }
 
   const selectedHomePlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.homePlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.homePlayerId), t)
     : ''
   const selectedAwayPlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.awayPlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.awayPlayerId), t)
     : ''
 
   if (isLoading) {
     return (
       <div className="card bracket-view">
-        <p className="bracket-view__empty">Loading bracket…</p>
+        <p className="bracket-view__empty">{t('tournaments.bracketView.loading')}</p>
       </div>
     )
   }
@@ -173,8 +164,8 @@ export function BracketViewComponent({
   if (!bracketView || bracketView.rounds.length === 0) {
     return (
       <div className="card bracket-view">
-        <h2 className="tournament-detail__section-title">Bracket</h2>
-        <p className="bracket-view__empty">The bracket has not been generated yet.</p>
+        <h2 className="tournament-detail__section-title">{t('tournaments.bracket')}</h2>
+        <p className="bracket-view__empty">{t('tournaments.bracketView.notGenerated')}</p>
         {error && <div className="alert alert--error">{error}</div>}
       </div>
     )
@@ -182,7 +173,7 @@ export function BracketViewComponent({
 
   return (
     <div className="card bracket-view">
-      <h2 className="tournament-detail__section-title">Bracket</h2>
+      <h2 className="tournament-detail__section-title">{t('tournaments.bracket')}</h2>
 
       {error && <div className="alert alert--error">{error}</div>}
 

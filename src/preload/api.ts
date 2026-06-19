@@ -7,6 +7,8 @@ export function createApi(): ElectronApi {
     app: {
       platform: process.platform as Platform,
       ping: () => ipc.invokeResult(IPC_CHANNELS.APP_PING),
+      getLocale: () => ipc.invokeResult(IPC_CHANNELS.APP_GET_LOCALE),
+      setLocale: (locale) => ipc.invokeResult(IPC_CHANNELS.APP_SET_LOCALE, { locale }),
       resetAllData: () => ipc.invokeResult(IPC_CHANNELS.APP_RESET_ALL_DATA),
     },
     windows: {

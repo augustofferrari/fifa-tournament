@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import type { LatestMatchResult } from '@shared/types/latest-match-result'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
@@ -84,17 +85,21 @@ export function getMatchPlayerLabel(
   return getPlayerDisplayName(playersById, playerId)
 }
 
-export function formatPhaseStatus(status: TournamentPhase['status']): string {
+export function formatPhaseStatus(status: TournamentPhase['status'], t: TFunction): string {
   switch (status) {
     case 'active':
-      return 'In progress'
+      return t('common.status.inProgress')
     case 'completed':
-      return 'Completed'
+      return t('common.status.completed')
     case 'pending':
-      return 'Upcoming'
+      return t('common.status.upcoming')
   }
 }
 
-export function formatTournamentStatus(status: string): string {
+export function formatTournamentStatus(status: string, t: TFunction): string {
+  if (status === 'draft' || status === 'active' || status === 'finished') {
+    return t(`common.status.${status}`)
+  }
+
   return status.charAt(0).toUpperCase() + status.slice(1)
 }

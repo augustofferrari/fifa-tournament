@@ -19,7 +19,12 @@ export const ipc = {
     const result = await this.invoke<IpcResult<T>>(channel, ...args)
 
     if (!result.success) {
-      throw new ApiError(result.error.code, result.error.message)
+      throw new ApiError(
+        result.error.code,
+        result.error.message,
+        result.error.i18nKey,
+        result.error.i18nParams,
+      )
     }
 
     return result.data

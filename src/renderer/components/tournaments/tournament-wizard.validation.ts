@@ -1,8 +1,10 @@
+import type { TFunction } from 'i18next'
 import {
   getKnockoutOnlyBracketSize,
 } from '@shared/tournament/bracket.utils'
+import { getTournamentFormatLabel } from '@shared/tournament/format-display.utils'
+import type { Locale } from '@shared/i18n'
 import {
-  TOURNAMENT_FORMAT_OPTIONS,
   TournamentFormat,
   type TournamentFormatConfig,
 } from '@shared/types/tournament-format'
@@ -31,13 +33,14 @@ export interface WizardStepDefinition {
   label: string
 }
 
-export const WIZARD_STEPS: WizardStepDefinition[] = [
-  { id: 'basic', label: 'Basic info' },
-  { id: 'players', label: 'Select players' },
-  { id: 'format', label: 'Select format' },
-  { id: 'configure', label: 'Configure format' },
-  { id: 'review', label: 'Review and create' },
-]
+export const WIZARD_STEP_IDS: WizardStepId[] = ['basic', 'players', 'format', 'configure', 'review']
+
+export function getWizardSteps(t: TFunction): WizardStepDefinition[] {
+  return WIZARD_STEP_IDS.map((id) => ({
+    id,
+    label: t(`tournaments.wizard.steps.${id}`),
+  }))
+}
 
 export const PLAYOFF_QUALIFIER_OPTIONS = ['2', '4', '8', '16'] as const
 
@@ -45,9 +48,13 @@ function derivePlayersPerGroup(playerCount: number, groupCount: number): number 
   return Math.ceil(playerCount / groupCount)
 }
 
-function pushValidationError(errors: string[], error: unknown): void {
+function pushValidationError(errors: string[], error: unknown, t: TFunction): void {
   if (error instanceof ValidationError) {
-    errors.push(error.message)
+    if (error.i18nKey) {
+      errors.push(t(error.i18nKey, error.i18nParams ?? {}))
+    } else {
+      errors.push(error.message)
+    }
     return
   }
 
@@ -95,95 +102,122 @@ export function buildFormatConfigInput(state: TournamentWizardState): Tournament
 export function validateWizardStep(
   stepId: WizardStepId,
   state: TournamentWizardState,
+  t: TFunction,
+  locale: Locale,
 ): string[] {
   const errors: string[] = []
 
   switch (stepId) {
     case 'basic': {
       if (!state.name.trim()) {
-        errors.push(ValidationMessages.tournamentNameRequired)
+        errors.push(t(ValidationMessages.tournamentNameRequired))
       }
       break
     }
     case 'players': {
       if (state.playerIds.length < 2) {
-        errors.push(ValidationMessages.tournamentMinPlayers)
+        errors.push(t(ValidationMessages.tournamentMinPlayers))
       }
       break
     }
     case 'format':
       break
     case 'configure':
-      errors.push(...validateWizardFormatConfig(state))
+      errors.push(...validateWizardFormatConfig(state, t))
       break
     case 'review':
-      errors.push(...validateWizardReview(state))
+      errors.push(...validateWizardReview(state, t, locale))
       break
   }
 
   return errors
 }
 
-export function validateWizardFormatConfig(state: TournamentWizardState): string[] {
+export function validateWizardFormatConfig(state: TournamentWizardState, t: TFunction): string[] {
   const errors: string[] = []
 
   try {
     const formatConfig = validateTournamentFormatConfig(buildFormatConfigInput(state))
     validateTournamentFormatPlayerRules(formatConfig.format, formatConfig, state.playerIds.length)
   } catch (error) {
-    pushValidationError(errors, error)
+    pushValidationError(errors, error, t)
   }
 
   return errors
 }
 
-export function validateWizardReview(state: TournamentWizardState): string[] {
+export function validateWizardReview(
+  state: TournamentWizardState,
+  t: TFunction,
+  locale: Locale,
+): string[] {
   const errors: string[] = []
 
   if (!state.name.trim()) {
-    errors.push(ValidationMessages.tournamentNameRequired)
+    errors.push(t(ValidationMessages.tournamentNameRequired))
   }
 
   const minimumPlayers = getMinimumPlayersForFormat(state.format)
 
   if (state.playerIds.length < minimumPlayers) {
     errors.push(
-      `${getFormatLabel(state.format)} requires at least ${minimumPlayers} players`,
+      t('tournaments.wizard.requiresMinPlayers', {
+        format: getTournamentFormatLabel(state.format, locale),
+        min: minimumPlayers,
+      }),
     )
   }
 
-  errors.push(...validateWizardFormatConfig(state))
+  errors.push(...validateWizardFormatConfig(state, t))
 
   return [...new Set(errors)]
-}
-
-export function getFormatLabel(format: TournamentFormat): string {
-  return TOURNAMENT_FORMAT_OPTIONS.find((option) => option.format === format)?.label ?? format
 }
 
 export function getFormatConfigSummary(
   state: TournamentWizardState,
   formatConfig: TournamentFormatConfig,
+  t: TFunction,
 ): string[] {
   const lines: string[] = []
 
   switch (state.format) {
     case TournamentFormat.ROUND_ROBIN:
-      lines.push('No extra configuration')
+      lines.push(t('tournaments.wizard.configSummary.noExtra'))
       break
     case TournamentFormat.ROUND_ROBIN_PLAYOFFS:
-      lines.push(`${formatConfig.playoffQualifiedCount} players qualify for playoffs`)
+      lines.push(
+        t('tournaments.wizard.configSummary.playoffQualifiers', {
+          count: formatConfig.playoffQualifiedCount,
+        }),
+      )
       break
     case TournamentFormat.GROUPS_KNOCKOUT:
-      lines.push(`${formatConfig.groupCount} groups`)
-      lines.push(`~${formatConfig.playersPerGroup} players per group (from ${state.playerIds.length} selected)`)
-      lines.push(`${formatConfig.playoffQualifiedCount} qualifiers per group`)
+      lines.push(t('tournaments.wizard.configSummary.groups', { count: formatConfig.groupCount }))
+      lines.push(
+        t('tournaments.wizard.configSummary.playersPerGroup', {
+          perGroup: formatConfig.playersPerGroup,
+          selected: state.playerIds.length,
+        }),
+      )
+      lines.push(
+        t('tournaments.wizard.configSummary.qualifiersPerGroup', {
+          count: formatConfig.playoffQualifiedCount,
+        }),
+      )
       break
     case TournamentFormat.KNOCKOUT_ONLY: {
       const bracketSize = getKnockoutOnlyBracketSizeLabel(state.playerIds.length)
-      lines.push(`Bracket size: ${bracketSize ?? '—'} (auto-detected)`)
+      lines.push(
+        t('tournaments.wizard.configSummary.bracketSize', {
+          size: bracketSize ?? t('common.emDash'),
+        }),
+      )
       if (bracketSize && state.playerIds.length < Number.parseInt(bracketSize, 10)) {
-        lines.push(`${Number.parseInt(bracketSize, 10) - state.playerIds.length} BYE slot(s) in round 1`)
+        lines.push(
+          t('tournaments.wizard.configSummary.byeSlots', {
+            count: Number.parseInt(bracketSize, 10) - state.playerIds.length,
+          }),
+        )
       }
       break
     }

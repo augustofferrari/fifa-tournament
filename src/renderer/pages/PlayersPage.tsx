@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import { PageHeader } from '@renderer/components/PageHeader'
 import {
@@ -10,22 +9,13 @@ import {
   PlayersTable,
   type PlayerFormValues,
 } from '@renderer/components/players'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 
 type FormMode = 'closed' | 'create' | 'edit'
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
 export function PlayersPage() {
+  const { t } = useAppTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const [players, setPlayers] = useState<Player[]>([])
@@ -42,11 +32,11 @@ export function PlayersPage() {
       const data = await window.api.players.list()
       setPlayers(data)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void loadPlayers()
@@ -96,14 +86,14 @@ export function PlayersPage() {
       closeForm()
       await loadPlayers()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsSaving(false)
     }
   }
 
   async function handleDelete(player: Player) {
-    const confirmed = window.confirm(`Delete ${player.name}? This cannot be undone.`)
+    const confirmed = window.confirm(t('players.deleteConfirm', { name: player.name }))
 
     if (!confirmed) {
       return
@@ -115,20 +105,17 @@ export function PlayersPage() {
       await window.api.players.delete(player.id)
       await loadPlayers()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     }
   }
 
   return (
     <section className="page page--wide">
-      <PageHeader
-        title="Players"
-        description="Manage player profiles and sticker assignments."
-      />
+      <PageHeader title={t('players.title')} description={t('players.description')} />
 
       <div className="page-toolbar">
         <button className="btn btn--primary" type="button" onClick={openCreateForm}>
-          Add Player
+          {t('players.addPlayer')}
         </button>
       </div>
 
@@ -146,9 +133,9 @@ export function PlayersPage() {
       )}
 
       {isLoading ? (
-        <div className="page__empty">Loading players…</div>
+        <div className="page__empty">{t('players.loading')}</div>
       ) : players.length === 0 ? (
-        <div className="page__empty">No players yet. Add your first player to get started.</div>
+        <div className="page__empty">{t('players.empty')}</div>
       ) : (
         <PlayersTable players={players} onEdit={openEditForm} onDelete={handleDelete} />
       )}

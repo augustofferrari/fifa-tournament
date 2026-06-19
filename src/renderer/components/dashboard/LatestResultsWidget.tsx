@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { LatestMatchResult } from '@shared/types/latest-match-result'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
 
 interface LatestResultsWidgetProps {
   results: LatestMatchResult[]
@@ -14,12 +16,14 @@ function formatDate(isoDate: string): string {
 }
 
 export function LatestResultsWidget({ results }: LatestResultsWidgetProps) {
+  const { t } = useAppTranslation()
+
   return (
     <section className="dashboard__section card">
-      <h2 className="dashboard__section-title">Latest results</h2>
+      <h2 className="dashboard__section-title">{t('dashboard.latestResults.title')}</h2>
 
       {results.length === 0 ? (
-        <p className="dashboard__empty-state">No played matches yet.</p>
+        <p className="dashboard__empty-state">{t('dashboard.latestResults.empty')}</p>
       ) : (
         <ul className="dashboard-latest-results">
           {results.map((result) => (
@@ -37,11 +41,15 @@ export function LatestResultsWidget({ results }: LatestResultsWidgetProps) {
               </div>
 
               <div className="dashboard-latest-results__score">
-                <span className="dashboard-latest-results__player">{result.homePlayerName}</span>
+                <span className="dashboard-latest-results__player">
+                  {displayPlayerName(result.homePlayerName, t)}
+                </span>
                 <strong className="dashboard-latest-results__result">
                   {result.homeGoals} – {result.awayGoals}
                 </strong>
-                <span className="dashboard-latest-results__player">{result.awayPlayerName}</span>
+                <span className="dashboard-latest-results__player">
+                  {displayPlayerName(result.awayPlayerName, t)}
+                </span>
               </div>
             </li>
           ))}

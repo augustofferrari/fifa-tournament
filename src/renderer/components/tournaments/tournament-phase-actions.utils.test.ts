@@ -1,4 +1,6 @@
+import type { TFunction } from 'i18next'
 import { describe, expect, it } from 'vitest'
+import { translate } from '@shared/i18n'
 import type { Match } from '@shared/types/match'
 import type { Tournament } from '@shared/types/tournament'
 import { TournamentFormat } from '@shared/types/tournament-format'
@@ -7,6 +9,9 @@ import {
   getGenerateKnockoutActionState,
   getGeneratePlayoffsActionState,
 } from './tournament-phase-actions.utils'
+
+const t = ((key: string, params?: Record<string, string | number>) =>
+  translate(key, 'en', params)) as TFunction
 
 function createPhase(overrides: Partial<TournamentPhase>): TournamentPhase {
   return {
@@ -83,7 +88,7 @@ describe('tournament phase actions utils', () => {
     ]
 
     expect(
-      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches),
+      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches, t),
     ).toMatchObject({
       visible: true,
       enabled: false,
@@ -98,7 +103,7 @@ describe('tournament phase actions utils', () => {
     }
 
     expect(
-      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches),
+      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches, t),
     ).toMatchObject({
       visible: true,
       enabled: true,
@@ -124,7 +129,7 @@ describe('tournament phase actions utils', () => {
     ]
 
     expect(
-      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches),
+      getGeneratePlayoffsActionState(tournament, [roundRobinPhase, playoffPhase], roundRobinPhase, matches, t),
     ).toMatchObject({
       visible: true,
       enabled: true,
@@ -150,7 +155,7 @@ describe('tournament phase actions utils', () => {
     ]
 
     expect(
-      getGenerateKnockoutActionState(tournament, [groupPhase, knockoutPhase], groupPhase, matches),
+      getGenerateKnockoutActionState(tournament, [groupPhase, knockoutPhase], groupPhase, matches, t),
     ).toMatchObject({
       visible: true,
       enabled: true,

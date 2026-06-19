@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
 import type { Sticker } from '@shared/types/sticker'
 import type { PlayerStickerTierInfo } from '@shared/types/sticker-tier'
@@ -11,18 +10,8 @@ import {
 } from '@renderer/components/stickers/StickerEditorModal'
 import { StickersAlbum } from '@renderer/components/stickers/StickersAlbum'
 import type { StickerEditorValues } from '@renderer/components/stickers/StickerEditor'
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
 
 const EMPTY_TIER_INFO: PlayerStickerTierInfo = {
   playerId: '',
@@ -41,6 +30,7 @@ interface EditorSession {
 }
 
 export function StickersPage() {
+  const { t } = useAppTranslation()
   const [players, setPlayers] = useState<Player[]>([])
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [playerTiers, setPlayerTiers] = useState<PlayerStickerTierInfo[]>([])
@@ -63,11 +53,11 @@ export function StickersPage() {
       setStickers(stickerData)
       setPlayerTiers(tierData)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void loadAlbum()
@@ -125,29 +115,21 @@ export function StickersPage() {
   if (isLoading) {
     return (
       <section className="page page--wide">
-        <PageHeader
-          title="Stickers"
-          description="Your world cup sticker album — create, edit, and export player cards."
-        />
-        <div className="page__empty">Loading album…</div>
+        <PageHeader title={t('stickers.title')} description={t('stickers.description')} />
+        <div className="page__empty">{t('stickers.loading')}</div>
       </section>
     )
   }
 
   return (
     <section className="page page--wide">
-      <PageHeader
-        title="Stickers"
-        description="Your world cup sticker album — create, edit, and export player cards."
-      />
+      <PageHeader title={t('stickers.title')} description={t('stickers.description')} />
 
       {error && <div className="alert alert--error">{error}</div>}
       {successMessage && <div className="alert alert--success">{successMessage}</div>}
 
       {players.length === 0 ? (
-        <div className="page__empty">
-          Add players first to start building your sticker album.
-        </div>
+        <div className="page__empty">{t('stickers.empty')}</div>
       ) : (
         <StickersAlbum
           players={players}

@@ -108,6 +108,13 @@ export class TournamentPhaseService {
 
     if (!hasNextPhase(phases, phase)) {
       this.tournamentRepository.updateTournamentStatus(validatedTournamentId, 'finished')
+      return
+    }
+
+    const tournament = this.tournamentRepository.getTournamentById(validatedTournamentId)
+
+    if (tournament?.status === 'draft') {
+      this.tournamentRepository.updateTournamentStatus(validatedTournamentId, 'active')
     }
   }
 

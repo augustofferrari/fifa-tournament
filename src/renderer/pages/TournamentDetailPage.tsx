@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { Tournament } from '@shared/types/tournament'
-import { getTournamentFormatLabel, TournamentFormat } from '@shared/types/tournament-format'
+import { getTournamentFormatLabel } from '@shared/tournament/format-display.utils'
+import { TournamentFormat } from '@shared/types/tournament-format'
 import { TournamentPhaseType, type TournamentPhase } from '@shared/types/tournament-phase'
 import { createRemovedPlayer, getPlayerDisplayName } from '@shared/validation'
 import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
@@ -22,25 +22,12 @@ import {
   isPhaseReadOnly,
 } from '@renderer/components/tournaments'
 import { getKnockoutOnlyStartHint } from '@renderer/components/tournaments/tournament-phase-actions.utils'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 
 function isBracketPhase(phaseType: TournamentPhaseType): boolean {
   return phaseType === TournamentPhaseType.PLAYOFF || phaseType === TournamentPhaseType.KNOCKOUT
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
-function statusLabel(status: Tournament['status']): string {
-  return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
 function resolveInitialPhaseId(phases: TournamentPhase[]): string | null {
@@ -55,6 +42,7 @@ function resolveInitialPhaseId(phases: TournamentPhase[]): string | null {
 
 export function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const { t, locale } = useAppTranslation()
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
   const [phases, setPhases] = useState<TournamentPhase[]>([])
@@ -98,7 +86,7 @@ export function TournamentDetailPage() {
 
   const loadTournament = useCallback(async () => {
     if (!id) {
-      setError('Tournament not found')
+      setError(t('tournaments.notFound'))
       setIsLoading(false)
       return
     }
@@ -115,7 +103,7 @@ export function TournamentDetailPage() {
         ])
 
       if (!tournamentData) {
-        setError('Tournament not found')
+        setError(t('tournaments.notFound'))
         return
       }
 
@@ -131,11 +119,11 @@ export function TournamentDetailPage() {
         return resolveInitialPhaseId(tournamentPhases)
       })
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     void loadTournament()
@@ -153,7 +141,7 @@ export function TournamentDetailPage() {
       await window.api.matches.generateFixture(id)
       await loadTournament()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsGenerating(false)
     }
@@ -172,7 +160,7 @@ export function TournamentDetailPage() {
       await loadTournament()
       setSelectedPhaseId(knockoutPhaseId)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsGenerating(false)
     }
@@ -206,7 +194,7 @@ export function TournamentDetailPage() {
     try {
       await window.api.windows.openTvMode(tournament.id)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     }
   }
 
@@ -225,29 +213,29 @@ export function TournamentDetailPage() {
       )
       setTournament(updated)
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsUpdatingResultsLock(false)
     }
   }
 
   const selectedHomePlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.homePlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.homePlayerId), t)
     : ''
   const selectedAwayPlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.awayPlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.awayPlayerId), t)
     : ''
 
   const isSelectedPhaseReadOnly =
     tournament && selectedPhase ? isPhaseReadOnly(tournament, selectedPhase) : false
   const knockoutOnlyStartHint = tournament
-    ? getKnockoutOnlyStartHint(tournament, matches)
+    ? getKnockoutOnlyStartHint(tournament, matches, t)
     : null
 
   if (isLoading) {
     return (
       <section className="page page--wide">
-        <div className="page__empty">Loading tournament…</div>
+        <div className="page__empty">{t('tournaments.loadingDetail')}</div>
       </section>
     )
   }
@@ -256,9 +244,9 @@ export function TournamentDetailPage() {
     return (
       <section className="page page--wide">
         <Link className="btn btn--ghost" to="/tournaments">
-          Back to Tournaments
+          {t('tournaments.backToTournaments')}
         </Link>
-        <div className="alert alert--error">{error ?? 'Tournament not found'}</div>
+        <div className="alert alert--error">{error ?? t('tournaments.notFound')}</div>
       </section>
     )
   }
@@ -267,9 +255,9 @@ export function TournamentDetailPage() {
     return (
       <section className="page page--wide">
         <Link className="btn btn--ghost" to="/tournaments">
-          Back to Tournaments
+          {t('tournaments.backToTournaments')}
         </Link>
-        <div className="alert alert--error">Tournament not found</div>
+        <div className="alert alert--error">{t('tournaments.notFound')}</div>
       </section>
     )
   }
@@ -278,14 +266,14 @@ export function TournamentDetailPage() {
     <section className="page page--wide">
       <div className="page-toolbar page-toolbar--start">
         <Link className="btn btn--ghost" to="/tournaments">
-          Back to Tournaments
+          {t('tournaments.backToTournaments')}
         </Link>
         <button
           className="btn btn--ghost"
           type="button"
           onClick={() => void handleOpenTvMode()}
         >
-          Open TV Mode
+          {t('tournaments.openTvMode')}
         </button>
         {tournament.status === 'finished' && (
           <button
@@ -295,10 +283,10 @@ export function TournamentDetailPage() {
             disabled={isUpdatingResultsLock}
           >
             {isUpdatingResultsLock
-              ? 'Updating…'
+              ? t('common.updating')
               : tournament.resultsUnlocked
-                ? 'Lock results'
-                : 'Unlock results'}
+                ? t('tournaments.lockResults')
+                : t('tournaments.unlockResults')}
           </button>
         )}
         {tournament.status === 'draft' && tournament.format === TournamentFormat.KNOCKOUT_ONLY && (
@@ -308,7 +296,7 @@ export function TournamentDetailPage() {
             onClick={() => void handleStartKnockoutOnlyTournament()}
             disabled={isGenerating || players.length < 2}
           >
-            {isGenerating ? 'Starting…' : 'Start Tournament'}
+            {isGenerating ? t('common.starting') : t('tournaments.startTournament')}
           </button>
         )}
         {tournament.status === 'draft' &&
@@ -320,7 +308,7 @@ export function TournamentDetailPage() {
             onClick={handleGenerateFixture}
             disabled={isGenerating || players.length < 2}
           >
-            {isGenerating ? 'Generating…' : 'Generate Fixture'}
+            {isGenerating ? t('common.generating') : t('tournaments.generateFixture')}
           </button>
         )}
       </div>
@@ -335,30 +323,41 @@ export function TournamentDetailPage() {
         <div className="tournament-detail__heading">
           <h1 className="page-header__title">{tournament.name}</h1>
           <span className="tournament-detail__format-badge">
-            {getTournamentFormatLabel(tournament.format)}
+            {getTournamentFormatLabel(tournament.format, locale)}
           </span>
           <span className={`status-badge status-badge--${tournament.status}`}>
-            {statusLabel(tournament.status)}
+            {t(`common.status.${tournament.status}`)}
           </span>
         </div>
         <p className="page-header__description">
-          Scoring: {tournament.pointsWin} pts win · {tournament.pointsDraw} pts draw ·{' '}
-          {tournament.pointsLoss} pts loss
+          {t('common.scoring', {
+            win: tournament.pointsWin,
+            draw: tournament.pointsDraw,
+            loss: tournament.pointsLoss,
+          })}
         </p>
       </header>
 
       <div className="card tournament-detail__players">
-        <h2 className="tournament-detail__section-title">Players ({players.length})</h2>
+        <h2 className="tournament-detail__section-title">
+          {t('tournaments.playersSection', { count: players.length })}
+        </h2>
 
         {players.length === 0 ? (
-          <p className="tournament-detail__empty">No players in this tournament.</p>
+          <p className="tournament-detail__empty">{t('tournaments.noPlayersInTournament')}</p>
         ) : (
           <ul className="tournament-detail__player-list">
             {players.map((player) => (
               <li key={player.id} className="tournament-detail__player-item">
-                <PlayerPhoto photoPath={player.photoPath} alt={player.name} size="sm" />
+                <PlayerPhoto
+                  photoPath={player.photoPath}
+                  alt={displayPlayerName(player.name, t)}
+                  size="sm"
+                />
                 <div>
-                  <div className="tournament-detail__player-name">{player.name}</div>
+                  <div className="tournament-detail__player-name">
+                    {displayPlayerName(player.name, t)}
+                  </div>
                   {player.teamName && (
                     <div className="tournament-detail__player-meta">{player.teamName}</div>
                   )}
@@ -380,8 +379,10 @@ export function TournamentDetailPage() {
       {selectedPhase && isSelectedPhaseReadOnly && (
         <p className="tournament-detail__phase-notice">
           {tournament.status === 'finished' && !tournament.resultsUnlocked
-            ? 'This tournament is finished. Unlock results editing to change match scores.'
-            : `This phase is ${selectedPhase.status}. Match results are read-only.`}
+            ? t('tournaments.phaseReadOnlyFinished')
+            : t('tournaments.phaseReadOnly', {
+                status: t(`common.status.${selectedPhase.status}`),
+              })}
         </p>
       )}
 
@@ -448,9 +449,7 @@ export function TournamentDetailPage() {
       {tournament.status === 'draft' &&
         matches.length === 0 &&
         tournament.format !== TournamentFormat.GROUPS_KNOCKOUT && (
-        <div className="page__empty">
-          Generate the fixture to create matches for this tournament.
-        </div>
+        <div className="page__empty">{t('tournaments.generateFixtureEmpty')}</div>
       )}
 
       {selectedPhase &&
@@ -458,7 +457,7 @@ export function TournamentDetailPage() {
         selectedPhase.phaseType !== TournamentPhaseType.GROUP_STAGE &&
         phaseMatches.length === 0 &&
         matches.length > 0 && (
-        <div className="page__empty">No matches in this phase yet.</div>
+        <div className="page__empty">{t('tournaments.noMatchesInPhase')}</div>
       )}
 
       {selectedPhase &&

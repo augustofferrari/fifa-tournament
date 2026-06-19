@@ -15,6 +15,7 @@ import {
 import type { Match } from '@shared/types/match'
 import { TournamentPhaseType } from '@shared/types/tournament-phase'
 import { ValidationMessages } from '@shared/validation'
+import { createValidationError } from '@shared/validation/errors'
 import { generateGroupStageRoundRobinFixtures } from './group-stage.fixture'
 import { MIN_PLAYERS_PER_GROUP } from './group-generation.calculator'
 import { TournamentGroupRepository } from './tournament-group.repository'
@@ -55,7 +56,7 @@ export class GroupStageFixtureService {
     }
 
     if (this.matchRepository.countMatchesByPhase(groupStagePhase.id) > 0) {
-      throw new ValidationError(ValidationMessages.fixtureAlreadyGenerated)
+      throw createValidationError(ValidationMessages.fixtureAlreadyGenerated)
     }
 
     if (tournament.status !== 'draft') {

@@ -6,9 +6,9 @@ import {
   type MatchRow,
 } from '@modules/matches/match.mapper'
 import { PlayerRepository } from '@modules/players/player.repository'
-import { assertNonEmptyString, ValidationError } from '@modules/players/player.validation'
+import { assertNonEmptyString } from '@modules/players/player.validation'
 import type { PlayerStreaks } from '@shared/types/player-streaks'
-import type { PlayerStreaks } from '@shared/types/player-streaks'
+import { createValidationError } from '@shared/validation/errors'
 import { calculateAllPlayerStreaks, calculatePlayerStreaks } from './player-streaks.calculator'
 
 function listAllPlayedMatches(db: Database.Database) {
@@ -36,7 +36,7 @@ export class PlayerStreakService {
     const validatedPlayerId = assertNonEmptyString(playerId, 'playerId')
 
     if (!this.playerRepository.getPlayerById(validatedPlayerId)) {
-      throw new ValidationError(`Player not found: ${validatedPlayerId}`)
+      throw createValidationError('errors.playerNotFound', { id: validatedPlayerId })
     }
 
     const matches = (

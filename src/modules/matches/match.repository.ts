@@ -7,7 +7,6 @@ import {
   type RoundRobinFixtureMatch,
 } from '@modules/fixtures'
 import {
-  getTournamentPhaseService,
   TournamentPhaseService,
 } from '@modules/tournament-phases'
 import { BracketAdvancementService } from '@modules/tournament-playoffs/bracket-advancement.service'
@@ -19,6 +18,7 @@ import {
   ValidationError,
 } from '@modules/tournaments/tournament.validation'
 import { MIN_TOURNAMENT_PLAYERS, ValidationMessages } from '@shared/validation'
+import { createValidationError } from '@shared/validation/errors'
 import {
   assertTournamentAllowsResultEditing,
   validateMatchResult,
@@ -83,7 +83,7 @@ export class MatchRepository {
   constructor(
     private readonly db: Database.Database = getDatabase(),
     private readonly tournamentRepository: TournamentRepository = new TournamentRepository(db),
-    private readonly tournamentPhaseService: TournamentPhaseService = getTournamentPhaseService(),
+    private readonly tournamentPhaseService: TournamentPhaseService = new TournamentPhaseService(db),
   ) {
     this.bracketAdvancementService = new BracketAdvancementService(
       db,
@@ -98,11 +98,11 @@ export class MatchRepository {
     const tournament = this.tournamentRepository.getTournamentById(validatedTournamentId)
 
     if (!tournament) {
-      throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: validatedTournamentId })
     }
 
     if (this.countMatchesByTournament(validatedTournamentId) > 0) {
-      throw new ValidationError(ValidationMessages.fixtureAlreadyGenerated)
+      throw createValidationError(ValidationMessages.fixtureAlreadyGenerated)
     }
 
     if (tournament.status !== 'draft') {
@@ -113,7 +113,7 @@ export class MatchRepository {
     const playerIds = players.map((player) => player.id)
 
     if (playerIds.length < MIN_TOURNAMENT_PLAYERS) {
-      throw new ValidationError(ValidationMessages.tournamentMinPlayers)
+      throw createValidationError(ValidationMessages.tournamentMinPlayers)
     }
 
     let fixtures: RoundRobinFixtureMatch[]
@@ -231,13 +231,13 @@ export class MatchRepository {
     const match = this.getMatchById(validatedMatchId)
 
     if (!match) {
-      throw new ValidationError(`Match not found: ${validatedMatchId}`)
+      throw createValidationError('errors.matchNotFound', { id: validatedMatchId })
     }
 
     const tournament = this.tournamentRepository.getTournamentById(match.tournamentId)
 
     if (!tournament) {
-      throw new ValidationError(`Tournament not found: ${match.tournamentId}`)
+      throw createValidationError('errors.tournamentNotFound', { id: match.tournamentId })
     }
 
     assertTournamentAllowsResultEditing(tournament)

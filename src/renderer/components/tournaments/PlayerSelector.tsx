@@ -1,5 +1,7 @@
 import type { Player } from '@shared/types/player'
 import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 
 interface PlayerSelectorProps {
   players: Player[]
@@ -14,6 +16,8 @@ export function PlayerSelector({
   onChange,
   disabled = false,
 }: PlayerSelectorProps) {
+  const { t } = useAppTranslation()
+
   function togglePlayer(playerId: string) {
     if (selectedIds.includes(playerId)) {
       onChange(selectedIds.filter((id) => id !== playerId))
@@ -26,7 +30,7 @@ export function PlayerSelector({
   if (players.length === 0) {
     return (
       <div className="player-selector player-selector--empty">
-        No players available. Add players first before creating a tournament.
+        {t('tournaments.playerSelector.empty')}
       </div>
     )
   }
@@ -35,6 +39,7 @@ export function PlayerSelector({
     <div className="player-selector">
       {players.map((player) => {
         const isSelected = selectedIds.includes(player.id)
+        const playerName = displayPlayerName(player.name, t)
 
         return (
           <label
@@ -47,9 +52,9 @@ export function PlayerSelector({
               disabled={disabled}
               onChange={() => togglePlayer(player.id)}
             />
-            <PlayerPhoto photoPath={player.photoPath} alt={player.name} size="sm" />
+            <PlayerPhoto photoPath={player.photoPath} alt={playerName} size="sm" />
             <span className="player-selector__info">
-              <span className="player-selector__name">{player.name}</span>
+              <span className="player-selector__name">{playerName}</span>
               {player.teamName && (
                 <span className="player-selector__meta">{player.teamName}</span>
               )}

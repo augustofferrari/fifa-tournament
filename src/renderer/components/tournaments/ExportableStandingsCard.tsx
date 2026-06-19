@@ -1,6 +1,8 @@
 import { forwardRef } from 'react'
 import { APP_NAME } from '@shared/constants'
 import type { StandingRow } from '@shared/types/standings'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 
 export const EXPORTABLE_STANDINGS_CARD_WIDTH = 680
 
@@ -11,8 +13,8 @@ export interface ExportableStandingsCardProps {
   className?: string
 }
 
-function formatGeneratedDate(date: Date): string {
-  return new Intl.DateTimeFormat(undefined, {
+function formatGeneratedDate(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -25,15 +27,16 @@ export const ExportableStandingsCard = forwardRef<HTMLElement, ExportableStandin
     { tournamentName, standings, generatedAt = new Date(), className },
     ref,
   ) {
+    const { t, locale, i18n } = useAppTranslation()
     const rootClassName = ['exportable-standings-card', className].filter(Boolean).join(' ')
-    const formattedDate = formatGeneratedDate(generatedAt)
-    const title = tournamentName.trim() || 'Tournament'
+    const formattedDate = formatGeneratedDate(generatedAt, i18n.language || locale)
+    const title = tournamentName.trim() || t('tournaments.exportableStandings.defaultTitle')
 
     return (
       <article
         ref={ref}
         className={rootClassName}
-        aria-label={`${title} standings card`}
+        aria-label={t('tournaments.exportableStandings.ariaLabel', { title })}
         style={{ width: EXPORTABLE_STANDINGS_CARD_WIDTH }}
       >
         <div className="exportable-standings-card__frame">
@@ -46,24 +49,28 @@ export const ExportableStandingsCard = forwardRef<HTMLElement, ExportableStandin
           </header>
 
           <div className="exportable-standings-card__body">
-            <h2 className="exportable-standings-card__section-label">Standings</h2>
+            <h2 className="exportable-standings-card__section-label">
+              {t('tournaments.exportableStandings.standings')}
+            </h2>
 
             {standings.length === 0 ? (
-              <p className="exportable-standings-card__empty">No standings yet</p>
+              <p className="exportable-standings-card__empty">
+                {t('tournaments.exportableStandings.empty')}
+              </p>
             ) : (
               <table className="exportable-standings-card__table">
                 <thead>
                   <tr>
-                    <th className="exportable-standings-card__pos-col">#</th>
-                    <th>Player</th>
-                    <th>P</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>GF</th>
-                    <th>GA</th>
-                    <th>GD</th>
-                    <th>Pts</th>
+                    <th className="exportable-standings-card__pos-col">{t('common.table.position')}</th>
+                    <th>{t('common.player')}</th>
+                    <th>{t('common.table.p')}</th>
+                    <th>{t('common.table.w')}</th>
+                    <th>{t('common.table.d')}</th>
+                    <th>{t('common.table.l')}</th>
+                    <th>{t('common.table.gf')}</th>
+                    <th>{t('common.table.ga')}</th>
+                    <th>{t('common.table.gd')}</th>
+                    <th>{t('common.table.pts')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -79,7 +86,9 @@ export const ExportableStandingsCard = forwardRef<HTMLElement, ExportableStandin
                         }
                       >
                         <td className="exportable-standings-card__pos">{position}</td>
-                        <td className="exportable-standings-card__player">{row.playerName}</td>
+                        <td className="exportable-standings-card__player">
+                          {displayPlayerName(row.playerName, t)}
+                        </td>
                         <td>{row.played}</td>
                         <td>{row.won}</td>
                         <td>{row.drawn}</td>

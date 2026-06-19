@@ -6,7 +6,7 @@ import {
   SUPPORTED_PLAYOFF_QUALIFIED_COUNTS,
   validateKnockoutBracketSize,
 } from '@shared/tournament/bracket.utils'
-import { ValidationError } from './errors'
+import { ValidationError, createValidationError } from './errors'
 
 export const MIN_ROUND_ROBIN_PLAYERS = 2
 export const MIN_ROUND_ROBIN_PLAYOFFS_PLAYERS = 3
@@ -69,9 +69,11 @@ export function validateTournamentFormatPlayerRules(
   const minimumPlayers = getMinimumPlayersForFormat(format)
 
   if (playerCount < minimumPlayers) {
-    throw new ValidationError(
-      `${format} requires at least ${minimumPlayers} players (selected ${playerCount})`,
-    )
+    throw createValidationError('errors.formatRequiresMinPlayersWithSelected', {
+      format,
+      min: minimumPlayers,
+      selected: playerCount,
+    })
   }
 
   switch (format) {

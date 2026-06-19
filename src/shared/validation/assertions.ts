@@ -1,8 +1,8 @@
-import { ValidationError } from './errors'
+import { createValidationError, ValidationError } from './errors'
 
 export function assertRequiredField(value: unknown, message: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new ValidationError(message)
+    throw createValidationError(message)
   }
 
   return value.trim()
@@ -14,7 +14,7 @@ export function assertMinimumCount(
   message: string,
 ): void {
   if (count < minimum) {
-    throw new ValidationError(message)
+    throw createValidationError(message)
   }
 }
 

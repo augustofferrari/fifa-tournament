@@ -14,6 +14,7 @@ import {
   nowIsoString,
   ValidationError,
 } from './player.validation'
+import { createValidationError } from '@shared/validation/errors'
 
 interface PlayerRow {
   id: string
@@ -111,7 +112,7 @@ export class PlayerRepository {
     const existing = this.getPlayerById(playerId)
 
     if (!existing) {
-      throw new ValidationError(`Player not found: ${playerId}`)
+      throw createValidationError('errors.playerNotFound', { id: playerId })
     }
 
     const updatedAt = nowIsoString()

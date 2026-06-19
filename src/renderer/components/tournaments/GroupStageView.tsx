@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { GroupStandings } from '@shared/types/standings'
@@ -11,8 +10,10 @@ import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
 import {
   formatMatchResult,
   groupMatchesByRound,
-  matchStatusLabel,
 } from '@renderer/utils/matches'
+import { useAppTranslation } from '@renderer/i18n/useLocale'
+import { getErrorMessage } from '@renderer/i18n/ipc-error'
+import { displayPlayerName } from '@renderer/i18n/display-utils'
 import { MatchResultModal } from './MatchResultModal'
 
 interface GroupStageViewProps {
@@ -24,21 +25,11 @@ interface GroupStageViewProps {
   onRefresh: () => Promise<void>
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    return error.message
-  }
-
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return 'Something went wrong'
-}
-
 function GroupStandingsMini({ standings }: { standings: GroupStandings['standings'] }) {
+  const { t } = useAppTranslation()
+
   if (standings.length === 0) {
-    return <p className="group-stage-view__empty">No standings yet.</p>
+    return <p className="group-stage-view__empty">{t('tournaments.groupStage.noStandings')}</p>
   }
 
   return (
@@ -46,13 +37,13 @@ function GroupStandingsMini({ standings }: { standings: GroupStandings['standing
       <table className="table standings-table">
         <thead>
           <tr>
-            <th className="standings-table__pos-col">#</th>
-            <th>Player</th>
-            <th>P</th>
-            <th>W</th>
-            <th>D</th>
-            <th>L</th>
-            <th>Pts</th>
+            <th className="standings-table__pos-col">{t('common.table.position')}</th>
+            <th>{t('common.player')}</th>
+            <th>{t('common.table.p')}</th>
+            <th>{t('common.table.w')}</th>
+            <th>{t('common.table.d')}</th>
+            <th>{t('common.table.l')}</th>
+            <th>{t('common.table.pts')}</th>
           </tr>
         </thead>
         <tbody>
@@ -66,7 +57,7 @@ function GroupStandingsMini({ standings }: { standings: GroupStandings['standing
                 className={isLeader ? 'standings-table__row--leader' : undefined}
               >
                 <td className="standings-table__pos">{position}</td>
-                <td className="table__primary">{row.playerName}</td>
+                <td className="table__primary">{displayPlayerName(row.playerName, t)}</td>
                 <td>{row.played}</td>
                 <td>{row.won}</td>
                 <td>{row.drawn}</td>
@@ -89,6 +80,7 @@ export function GroupStageView({
   readOnly = false,
   onRefresh,
 }: GroupStageViewProps) {
+  const { t } = useAppTranslation()
   const [groups, setGroups] = useState<TournamentGroupWithPlayers[]>([])
   const [groupStandings, setGroupStandings] = useState<GroupStandings[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -118,11 +110,11 @@ export function GroupStageView({
         return groupsData[0]?.id ?? null
       })
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsLoading(false)
     }
-  }, [tournament.id])
+  }, [t, tournament.id])
 
   useEffect(() => {
     void loadGroupData()
@@ -148,7 +140,7 @@ export function GroupStageView({
 
   async function handleGenerateGroups() {
     if (!tournament.groupCount) {
-      setError('Tournament group count is not configured')
+      setError(t('tournaments.groupStage.groupCountNotConfigured'))
       return
     }
 
@@ -164,7 +156,7 @@ export function GroupStageView({
       await onRefresh()
       await loadGroupData()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsGeneratingGroups(false)
     }
@@ -179,7 +171,7 @@ export function GroupStageView({
       await onRefresh()
       await loadGroupData()
     } catch (err) {
-      setError(getErrorMessage(err))
+      setError(getErrorMessage(err, t))
     } finally {
       setIsGeneratingFixture(false)
     }
@@ -205,16 +197,16 @@ export function GroupStageView({
   }
 
   const selectedHomePlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.homePlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.homePlayerId), t)
     : ''
   const selectedAwayPlayerName = selectedMatch
-    ? getPlayerDisplayName(playersById, selectedMatch.awayPlayerId)
+    ? displayPlayerName(getPlayerDisplayName(playersById, selectedMatch.awayPlayerId), t)
     : ''
 
   if (isLoading) {
     return (
       <div className="card group-stage-view">
-        <p className="group-stage-view__empty">Loading group stage…</p>
+        <p className="group-stage-view__empty">{t('tournaments.groupStage.loading')}</p>
       </div>
     )
   }
@@ -222,10 +214,8 @@ export function GroupStageView({
   if (groups.length === 0) {
     return (
       <div className="card group-stage-view">
-        <h2 className="tournament-detail__section-title">Group Stage</h2>
-        <p className="group-stage-view__empty">
-          Groups have not been generated yet. Create groups to start the group stage.
-        </p>
+        <h2 className="tournament-detail__section-title">{t('tournaments.phase.groupStage')}</h2>
+        <p className="group-stage-view__empty">{t('tournaments.groupStage.notGenerated')}</p>
         {error && <div className="alert alert--error">{error}</div>}
         {!readOnly && (
           <div className="group-stage-view__actions">
@@ -235,7 +225,7 @@ export function GroupStageView({
               onClick={() => void handleGenerateGroups()}
               disabled={isGeneratingGroups || players.length < 2}
             >
-              {isGeneratingGroups ? 'Generating…' : 'Generate Groups'}
+              {isGeneratingGroups ? t('common.generating') : t('tournaments.groupStage.generateGroups')}
             </button>
           </div>
         )}
@@ -246,10 +236,8 @@ export function GroupStageView({
   if (matches.length === 0) {
     return (
       <div className="card group-stage-view">
-        <h2 className="tournament-detail__section-title">Group Stage</h2>
-        <p className="group-stage-view__empty">
-          Groups are ready. Generate the group stage fixture to create matches.
-        </p>
+        <h2 className="tournament-detail__section-title">{t('tournaments.phase.groupStage')}</h2>
+        <p className="group-stage-view__empty">{t('tournaments.groupStage.groupsReady')}</p>
         {error && <div className="alert alert--error">{error}</div>}
         {!readOnly && (
           <div className="group-stage-view__actions">
@@ -259,7 +247,9 @@ export function GroupStageView({
               onClick={() => void handleGenerateFixture()}
               disabled={isGeneratingFixture}
             >
-              {isGeneratingFixture ? 'Generating…' : 'Generate Group Fixture'}
+              {isGeneratingFixture
+                ? t('common.generating')
+                : t('tournaments.groupStage.generateGroupFixture')}
             </button>
           </div>
         )}
@@ -271,11 +261,11 @@ export function GroupStageView({
 
   return (
     <div className="card group-stage-view">
-      <h2 className="tournament-detail__section-title">Group Stage</h2>
+      <h2 className="tournament-detail__section-title">{t('tournaments.phase.groupStage')}</h2>
 
       {error && <div className="alert alert--error">{error}</div>}
 
-      <div className="group-stage-view__tabs" role="tablist" aria-label="Groups">
+      <div className="group-stage-view__tabs" role="tablist" aria-label={t('common.aria.groups')}>
         {groups.map((group) => {
           const isSelected = group.id === selectedGroupId
 
@@ -297,24 +287,26 @@ export function GroupStageView({
       {selectedGroup && (
         <div className="group-stage-view__panel" role="tabpanel">
           <section className="group-stage-view__section">
-            <h3 className="group-stage-view__section-title">Players</h3>
+            <h3 className="group-stage-view__section-title">{t('tournaments.groupStage.players')}</h3>
             <ul className="group-stage-view__players">
               {selectedGroup.players.map((assignment) => {
                 const player = playersById.get(assignment.playerId)
+                const playerName = displayPlayerName(
+                  getPlayerDisplayName(playersById, assignment.playerId),
+                  t,
+                )
 
                 return (
                   <li key={assignment.playerId} className="group-stage-view__player">
                     <PlayerPhoto
                       photoPath={player?.photoPath ?? null}
-                      alt={getPlayerDisplayName(playersById, assignment.playerId)}
+                      alt={playerName}
                       size="sm"
                     />
                     <div>
-                      <div className="group-stage-view__player-name">
-                        {getPlayerDisplayName(playersById, assignment.playerId)}
-                      </div>
+                      <div className="group-stage-view__player-name">{playerName}</div>
                       <div className="group-stage-view__player-meta">
-                        Seed {assignment.seedPosition}
+                        {t('common.seed', { number: assignment.seedPosition })}
                       </div>
                     </div>
                   </li>
@@ -324,20 +316,22 @@ export function GroupStageView({
           </section>
 
           <section className="group-stage-view__section">
-            <h3 className="group-stage-view__section-title">Standings</h3>
+            <h3 className="group-stage-view__section-title">{t('tournaments.groupStage.standings')}</h3>
             <GroupStandingsMini standings={selectedGroupStandings?.standings ?? []} />
           </section>
 
           <section className="group-stage-view__section">
-            <h3 className="group-stage-view__section-title">Fixture</h3>
+            <h3 className="group-stage-view__section-title">{t('tournaments.fixture')}</h3>
 
             {rounds.length === 0 ? (
-              <p className="group-stage-view__empty">No matches scheduled for this group.</p>
+              <p className="group-stage-view__empty">{t('tournaments.groupStage.noMatchesInGroup')}</p>
             ) : (
               <div className="match-rounds">
                 {rounds.map((round) => (
                   <section key={round.roundNumber} className="match-round">
-                    <h4 className="match-round__title">Round {round.roundNumber}</h4>
+                    <h4 className="match-round__title">
+                      {t('common.round', { number: round.roundNumber })}
+                    </h4>
                     <ul className="match-round__list">
                       {round.matches.map((match) => {
                         const result = formatMatchResult(match)
@@ -348,18 +342,24 @@ export function GroupStageView({
                               <div className="match-card match-card--readonly">
                                 <div className="match-card__teams">
                                   <span className="match-card__team">
-                                    {getPlayerDisplayName(playersById, match.homePlayerId)}
+                                    {displayPlayerName(
+                                      getPlayerDisplayName(playersById, match.homePlayerId),
+                                      t,
+                                    )}
                                   </span>
-                                  <span className="match-card__versus">{result ?? 'vs'}</span>
+                                  <span className="match-card__versus">{result ?? t('common.vs')}</span>
                                   <span className="match-card__team">
-                                    {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                                    {displayPlayerName(
+                                      getPlayerDisplayName(playersById, match.awayPlayerId),
+                                      t,
+                                    )}
                                   </span>
                                 </div>
                                 <div className="match-card__meta">
                                   <span
                                     className={`status-badge status-badge--match-${match.status}`}
                                   >
-                                    {matchStatusLabel(match.status)}
+                                    {t(`common.status.${match.status}`)}
                                   </span>
                                 </div>
                               </div>
@@ -371,21 +371,29 @@ export function GroupStageView({
                               >
                                 <div className="match-card__teams">
                                   <span className="match-card__team">
-                                    {getPlayerDisplayName(playersById, match.homePlayerId)}
+                                    {displayPlayerName(
+                                      getPlayerDisplayName(playersById, match.homePlayerId),
+                                      t,
+                                    )}
                                   </span>
-                                  <span className="match-card__versus">{result ?? 'vs'}</span>
+                                  <span className="match-card__versus">{result ?? t('common.vs')}</span>
                                   <span className="match-card__team">
-                                    {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                                    {displayPlayerName(
+                                      getPlayerDisplayName(playersById, match.awayPlayerId),
+                                      t,
+                                    )}
                                   </span>
                                 </div>
                                 <div className="match-card__meta">
                                   <span
                                     className={`status-badge status-badge--match-${match.status}`}
                                   >
-                                    {matchStatusLabel(match.status)}
+                                    {t(`common.status.${match.status}`)}
                                   </span>
                                   <span className="match-card__action">
-                                    {match.status === 'played' ? 'Edit result' : 'Enter result'}
+                                    {match.status === 'played'
+                                      ? t('tournaments.match.editResult')
+                                      : t('tournaments.match.enterResult')}
                                   </span>
                                 </div>
                               </button>

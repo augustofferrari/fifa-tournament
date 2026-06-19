@@ -9,6 +9,7 @@ import { TournamentRepository } from '../tournaments/tournament.repository'
 import { PlayerRepository } from '../players/player.repository'
 import { ValidationError } from '../tournaments/tournament.validation'
 import { ValidationMessages } from '@shared/validation'
+import { translate } from '@shared/i18n'
 
 function createMatchRepository(db: Database.Database) {
   const tournamentRepository = new TournamentRepository(db)
@@ -88,7 +89,7 @@ describe('MatchRepository.generateFixtureForTournament', () => {
       ValidationError,
     )
     expect(() => matchRepository.generateFixtureForTournament(tournament.id)).toThrow(
-      ValidationMessages.fixtureAlreadyGenerated,
+      translate(ValidationMessages.fixtureAlreadyGenerated, 'en'),
     )
   })
 
@@ -155,14 +156,14 @@ describe('MatchRepository.updateMatchResult', () => {
 
     expect(() => matchRepository.updateMatchResult(match.id, -1, 0)).toThrow(ValidationError)
     expect(() => matchRepository.updateMatchResult(match.id, -1, 0)).toThrow(
-      ValidationMessages.goalsCannotBeNegative,
+      translate(ValidationMessages.goalsCannotBeNegative, 'en'),
     )
     expect(() => matchRepository.updateMatchResult(match.id, 1.5, 0)).toThrow(ValidationError)
   })
 
   it('throws when match is not found', () => {
     expect(() => matchRepository.updateMatchResult('missing-id', 1, 0)).toThrow(
-      'Match not found: missing-id',
+      translate('errors.matchNotFound', 'en', { id: 'missing-id' }),
     )
   })
 })
@@ -248,17 +249,10 @@ describe('MatchRepository.getLatestResults', () => {
   it('uses removed player label when a player was deleted', () => {
     const home = playerRepository.createPlayer({ name: 'Alice' })
     const away = playerRepository.createPlayer({ name: 'Bob' })
-    const extra = playerRepository.createPlayer({ name: 'Carol' })
-    const fourth = playerRepository.createPlayer({ name: 'Dave' })
     const tournament = tournamentRepository.createTournament({ name: 'Open Cup' })
-    tournamentRepository.addPlayersToTournament(tournament.id, [
-      home.id,
-      away.id,
-      extra.id,
-      fourth.id,
-    ])
-    const matches = matchRepository.generateFixtureForTournament(tournament.id)
-    matchRepository.updateMatchResult(matches[0]!.id, 2, 2)
+    tournamentRepository.addPlayersToTournament(tournament.id, [home.id, away.id])
+    const [match] = matchRepository.generateFixtureForTournament(tournament.id)
+    matchRepository.updateMatchResult(match!.id, 2, 2)
     playerRepository.deletePlayer(home.id)
 
     const [result] = matchRepository.getLatestResults(1)
