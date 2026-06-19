@@ -1,0 +1,45 @@
+{
+  "name": "mundial-app",
+  "version": "0.1.0",
+  "description": "Electron + React + TypeScript desktop application",
+  "main": "./out/main/index.js",
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/electron-vite.mjs dev",
+    "build": "electron-vite build",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win",
+    "package:all": "npm run build && electron-builder --mac --win",
+    "package:dir": "npm run build && electron-builder --dir",
+    "preview": "node scripts/electron-vite.mjs preview",
+    "typecheck": "tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "fix:electron": "node scripts/fix-electron-signature.mjs",
+    "rebuild:native": "node scripts/rebuild-native.mjs && node scripts/fix-electron-signature.mjs",
+    "rebuild:native:node": "npm rebuild better-sqlite3 --build-from-source",
+    "postinstall": "node scripts/rebuild-native.mjs && node scripts/fix-electron-signature.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "html-to-image": "^1.11.13",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.18.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.0",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^3.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.9"
+  }
+}

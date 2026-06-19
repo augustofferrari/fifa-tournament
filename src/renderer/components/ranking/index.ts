@@ -1,0 +1,1 @@
+export { HistoricalRankingTable } from './HistoricalRankingTable'

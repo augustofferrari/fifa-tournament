@@ -1,0 +1,39 @@
+appId: com.mundial.app
+productName: MundialApp
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+
+asar: true
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+
+# Native module is externalized in the main bundle; rebuild for the target Electron version.
+npmRebuild: true
+
+mac:
+  category: public.app-category.sports
+  icon: build/icon.png
+  target:
+    - dmg
+    - zip
+
+win:
+  icon: build/icon.png
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+dmg:
+  artifactName: "${productName}-${version}.${ext}"

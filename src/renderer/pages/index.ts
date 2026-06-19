@@ -1,0 +1,7 @@
+export { DashboardPage } from './DashboardPage'
+export { HistoricalRankingPage } from './HistoricalRankingPage'
+export { PlayersPage } from './PlayersPage'
+export { SettingsPage } from './SettingsPage'
+export { StickersPage } from './StickersPage'
+export { TournamentDetailPage } from './TournamentDetailPage'
+export { TournamentsPage } from './TournamentsPage'
