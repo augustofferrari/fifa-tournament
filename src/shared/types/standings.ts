@@ -10,3 +10,9 @@ export interface StandingRow {
   goalDifference: number
   points: number
 }
+
+export interface GroupStandings {
+  groupId: string
+  groupName: string
+  standings: StandingRow[]
+}

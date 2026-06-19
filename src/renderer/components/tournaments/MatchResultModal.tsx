@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
-import { ValidationMessages } from '@shared/validation'
+import { ValidationMessages, phaseAllowsDraws } from '@shared/validation'
+import type { TournamentPhaseType } from '@shared/types/tournament-phase'
 
 interface MatchResultModalProps {
   match: Match | null
   homePlayerName: string
   awayPlayerName: string
+  phaseType?: TournamentPhaseType
   isSaving: boolean
   onClose: () => void
   onSave: (homeGoals: number, awayGoals: number) => Promise<void>
@@ -30,6 +32,7 @@ export function MatchResultModal({
   match,
   homePlayerName,
   awayPlayerName,
+  phaseType,
   isSaving,
   onClose,
   onSave,
@@ -61,6 +64,11 @@ export function MatchResultModal({
 
     if (parsedHomeGoals === null || parsedAwayGoals === null) {
       setError(ValidationMessages.goalsMustBeWholeNumbers)
+      return
+    }
+
+    if (phaseType && !phaseAllowsDraws(phaseType) && parsedHomeGoals === parsedAwayGoals) {
+      setError(ValidationMessages.knockoutRequiresWinner)
       return
     }
 
@@ -115,6 +123,10 @@ export function MatchResultModal({
               />
             </label>
           </div>
+
+          {phaseType && !phaseAllowsDraws(phaseType) && (
+            <p className="match-result-form__hint">Knockout matches require a winner.</p>
+          )}
 
           {error && <div className="alert alert--error">{error}</div>}
 

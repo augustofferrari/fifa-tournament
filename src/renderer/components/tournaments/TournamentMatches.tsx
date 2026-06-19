@@ -12,9 +12,15 @@ interface TournamentMatchesProps {
   matches: Match[]
   playersById: Map<string, Player>
   onSelectMatch: (match: Match) => void
+  readOnly?: boolean
 }
 
-export function TournamentMatches({ matches, playersById, onSelectMatch }: TournamentMatchesProps) {
+export function TournamentMatches({
+  matches,
+  playersById,
+  onSelectMatch,
+  readOnly = false,
+}: TournamentMatchesProps) {
   const rounds: MatchRound[] = groupMatchesByRound(matches)
 
   if (rounds.length === 0) {
@@ -35,29 +41,48 @@ export function TournamentMatches({ matches, playersById, onSelectMatch }: Tourn
 
                 return (
                   <li key={match.id}>
-                    <button
-                      type="button"
-                      className="match-card match-card--interactive"
-                      onClick={() => onSelectMatch(match)}
-                    >
-                      <div className="match-card__teams">
-                        <span className="match-card__team">
-                          {getPlayerDisplayName(playersById, match.homePlayerId)}
-                        </span>
-                        <span className="match-card__versus">{result ?? 'vs'}</span>
-                        <span className="match-card__team">
-                          {getPlayerDisplayName(playersById, match.awayPlayerId)}
-                        </span>
+                    {readOnly ? (
+                      <div className="match-card match-card--readonly">
+                        <div className="match-card__teams">
+                          <span className="match-card__team">
+                            {getPlayerDisplayName(playersById, match.homePlayerId)}
+                          </span>
+                          <span className="match-card__versus">{result ?? 'vs'}</span>
+                          <span className="match-card__team">
+                            {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                          </span>
+                        </div>
+                        <div className="match-card__meta">
+                          <span className={`status-badge status-badge--match-${match.status}`}>
+                            {matchStatusLabel(match.status)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="match-card__meta">
-                        <span className={`status-badge status-badge--match-${match.status}`}>
-                          {matchStatusLabel(match.status)}
-                        </span>
-                        <span className="match-card__action">
-                          {match.status === 'played' ? 'Edit result' : 'Enter result'}
-                        </span>
-                      </div>
-                    </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="match-card match-card--interactive"
+                        onClick={() => onSelectMatch(match)}
+                      >
+                        <div className="match-card__teams">
+                          <span className="match-card__team">
+                            {getPlayerDisplayName(playersById, match.homePlayerId)}
+                          </span>
+                          <span className="match-card__versus">{result ?? 'vs'}</span>
+                          <span className="match-card__team">
+                            {getPlayerDisplayName(playersById, match.awayPlayerId)}
+                          </span>
+                        </div>
+                        <div className="match-card__meta">
+                          <span className={`status-badge status-badge--match-${match.status}`}>
+                            {matchStatusLabel(match.status)}
+                          </span>
+                          <span className="match-card__action">
+                            {match.status === 'played' ? 'Edit result' : 'Enter result'}
+                          </span>
+                        </div>
+                      </button>
+                    )}
                   </li>
                 )
               })}

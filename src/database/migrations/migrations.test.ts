@@ -20,14 +20,18 @@ describe('database migrations', () => {
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .all() as Array<{ name: string }>
 
+    expect(tables.map((table) => table.name)).toContain('bracket_matches')
     expect(tables.map((table) => table.name)).toContain('matches')
+    expect(tables.map((table) => table.name)).toContain('tournament_group_players')
+    expect(tables.map((table) => table.name)).toContain('tournament_groups')
+    expect(tables.map((table) => table.name)).toContain('tournament_phases')
     expect(tables.map((table) => table.name)).toContain('_migrations')
 
     const applied = db
       .prepare(`SELECT id FROM _migrations ORDER BY id`)
       .all() as Array<{ id: number }>
 
-    expect(applied.map((row) => row.id)).toEqual([1, 2])
+    expect(applied.map((row) => row.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
   })
 
   it('allows deleting players referenced by matches after migration 002', () => {

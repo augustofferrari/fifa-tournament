@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { Match } from '@shared/types/match'
+import { EMPTY_MATCH_PHASE_FIELDS } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { Tournament } from '@shared/types/tournament'
+import { DEFAULT_TOURNAMENT_FORMAT_CONFIG } from '@shared/types/tournament-format'
 import { calculateStandings } from './standings.calculator'
 
 const tournament: Tournament = {
   id: 't1',
   name: 'Test',
   status: 'active',
+  ...DEFAULT_TOURNAMENT_FORMAT_CONFIG,
   pointsWin: 3,
   pointsDraw: 1,
   pointsLoss: 0,
@@ -53,6 +56,7 @@ function playedMatch(
   awayGoals: number,
 ): Match {
   return {
+    ...EMPTY_MATCH_PHASE_FIELDS,
     id,
     tournamentId: tournament.id,
     roundNumber: 1,

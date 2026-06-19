@@ -10,7 +10,15 @@ import type {
 } from '@shared/types/tournament'
 import type { StandingRow } from '@shared/types/standings'
 import { MatchRepository } from '@modules/matches/match.repository'
+import { TournamentPhaseRepository } from '@modules/tournament-phases/tournament-phase.repository'
+import { TournamentPhaseService } from '@modules/tournament-phases/tournament-phase.service'
 import { calculateStandings } from './standings.calculator'
+import {
+  booleanToSqliteInteger,
+  mapRowToTournament,
+  TOURNAMENT_SELECT_COLUMNS,
+  type TournamentRow,
+} from './tournament.mapper'
 import {
   assertNonEmptyString,
   assertTournamentStatus,
@@ -21,17 +29,6 @@ import {
 } from './tournament.validation'
 import { createRemovedPlayer } from '@shared/validation'
 
-interface TournamentRow {
-  id: string
-  name: string
-  status: string
-  points_win: number
-  points_draw: number
-  points_loss: number
-  created_at: string
-  updated_at: string
-}
-
 interface PlayerRow {
   id: string
   name: string
@@ -40,19 +37,6 @@ interface PlayerRow {
   photo_path: string | null
   created_at: string
   updated_at: string
-}
-
-function mapRowToTournament(row: TournamentRow): Tournament {
-  return {
-    id: row.id,
-    name: row.name,
-    status: row.status as TournamentStatus,
-    pointsWin: row.points_win,
-    pointsDraw: row.points_draw,
-    pointsLoss: row.points_loss,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
 }
 
 function mapRowToPlayer(row: PlayerRow): Player {
@@ -78,16 +62,26 @@ export class TournamentRepository {
     this.db
       .prepare(
         `INSERT INTO tournaments (
-          id, name, status, points_win, points_draw, points_loss, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          id, name, status, format, has_group_stage, has_playoffs, has_knockout_stage,
+          playoff_qualified_count, group_count, players_per_group,
+          points_win, points_draw, points_loss, results_unlocked, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
         validated.name,
         'draft',
+        validated.format,
+        booleanToSqliteInteger(validated.hasGroupStage),
+        booleanToSqliteInteger(validated.hasPlayoffs),
+        booleanToSqliteInteger(validated.hasKnockoutStage),
+        validated.playoffQualifiedCount,
+        validated.groupCount,
+        validated.playersPerGroup,
         validated.pointsWin,
         validated.pointsDraw,
         validated.pointsLoss,
+        0,
         timestamp,
         timestamp,
       )
@@ -113,11 +107,28 @@ export class TournamentRepository {
     return this.getTournamentById(tournamentId)!
   }
 
+  setResultsUnlocked(id: string, resultsUnlocked: boolean): Tournament {
+    const tournamentId = assertNonEmptyString(id, 'id')
+    const existing = this.getTournamentById(tournamentId)
+
+    if (!existing) {
+      throw new ValidationError(`Tournament not found: ${tournamentId}`)
+    }
+
+    const updatedAt = nowIsoString()
+
+    this.db
+      .prepare(`UPDATE tournaments SET results_unlocked = ?, updated_at = ? WHERE id = ?`)
+      .run(booleanToSqliteInteger(resultsUnlocked), updatedAt, tournamentId)
+
+    return this.getTournamentById(tournamentId)!
+  }
+
   getTournamentById(id: string): Tournament | null {
     const tournamentId = assertNonEmptyString(id, 'id')
     const row = this.db
       .prepare(
-        `SELECT id, name, status, points_win, points_draw, points_loss, created_at, updated_at
+        `SELECT ${TOURNAMENT_SELECT_COLUMNS}
          FROM tournaments
          WHERE id = ?`,
       )
@@ -132,7 +143,7 @@ export class TournamentRepository {
 
       const rows = this.db
         .prepare(
-          `SELECT id, name, status, points_win, points_draw, points_loss, created_at, updated_at
+          `SELECT ${TOURNAMENT_SELECT_COLUMNS}
            FROM tournaments
            WHERE status = ?
            ORDER BY created_at DESC`,
@@ -144,7 +155,7 @@ export class TournamentRepository {
 
     const rows = this.db
       .prepare(
-        `SELECT id, name, status, points_win, points_draw, points_loss, created_at, updated_at
+        `SELECT ${TOURNAMENT_SELECT_COLUMNS}
          FROM tournaments
          ORDER BY created_at DESC`,
       )
@@ -155,11 +166,13 @@ export class TournamentRepository {
 
   addPlayersToTournament(tournamentId: string, playerIds: string[]): Player[] {
     const validatedTournamentId = assertNonEmptyString(tournamentId, 'tournamentId')
-    const validatedPlayerIds = validateTournamentPlayerSelection(playerIds)
+    const tournament = this.getTournamentById(validatedTournamentId)
 
-    if (!this.getTournamentById(validatedTournamentId)) {
+    if (!tournament) {
       throw new ValidationError(`Tournament not found: ${validatedTournamentId}`)
     }
+
+    const validatedPlayerIds = validateTournamentPlayerSelection(playerIds, tournament)
 
     const findPlayer = this.db.prepare('SELECT id FROM players WHERE id = ?')
     const insertTournamentPlayer = this.db.prepare(
@@ -206,7 +219,7 @@ export class TournamentRepository {
 
   getTournamentPlayersIncludingRemoved(tournamentId: string): Player[] {
     const rosterPlayers = this.getTournamentPlayers(tournamentId)
-    const matchRepository = new MatchRepository(this.db, this)
+    const matchRepository = this.createMatchRepository()
     const matches = matchRepository.listMatchesByTournament({ tournamentId })
     const rosterIds = new Set(rosterPlayers.map((player) => player.id))
     const removedPlayerIds = new Set<string>()
@@ -226,7 +239,7 @@ export class TournamentRepository {
     return [...rosterPlayers, ...removedPlayers]
   }
 
-  getTournamentStandings(tournamentId: string): StandingRow[] {
+  getTournamentStandings(tournamentId: string, phaseId?: string): StandingRow[] {
     const validatedTournamentId = assertNonEmptyString(tournamentId, 'tournamentId')
     const tournament = this.getTournamentById(validatedTournamentId)
 
@@ -235,9 +248,20 @@ export class TournamentRepository {
     }
 
     const players = this.getTournamentPlayersIncludingRemoved(validatedTournamentId)
-    const matchRepository = new MatchRepository(this.db, this)
+    const matchRepository = this.createMatchRepository()
     const matches = matchRepository.listMatchesByTournament({ tournamentId: validatedTournamentId })
+    const filteredMatches = phaseId
+      ? matches.filter((match) => match.phaseId === phaseId)
+      : matches
 
-    return calculateStandings(players, matches, tournament)
+    return calculateStandings(players, filteredMatches, tournament)
+  }
+
+  private createMatchRepository(): MatchRepository {
+    return new MatchRepository(
+      this.db,
+      this,
+      new TournamentPhaseService(this.db, this, new TournamentPhaseRepository(this.db)),
+    )
   }
 }

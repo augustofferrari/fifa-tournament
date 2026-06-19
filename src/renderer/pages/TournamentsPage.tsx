@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '@shared/ipc/errors'
 import type { Player } from '@shared/types/player'
-import type { Tournament } from '@shared/types/tournament'
+import type { CreateTournamentInput, Tournament } from '@shared/types/tournament'
 import { PageHeader } from '@renderer/components/PageHeader'
-import { TournamentCreateForm, TournamentsTable } from '@renderer/components/tournaments'
+import { TournamentCreateWizard, TournamentsTable } from '@renderer/components/tournaments'
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -62,12 +62,12 @@ export function TournamentsPage() {
     navigate('.', { replace: true, state: null })
   }, [location.state, navigate])
 
-  async function handleCreate(name: string, playerIds: string[]) {
+  async function handleCreate(input: CreateTournamentInput, playerIds: string[]) {
     setIsSaving(true)
     setError(null)
 
     try {
-      const tournament = await window.api.tournaments.create({ name })
+      const tournament = await window.api.tournaments.create(input)
       await window.api.tournaments.addPlayers(tournament.id, playerIds)
 
       setShowCreateForm(false)
@@ -102,7 +102,7 @@ export function TournamentsPage() {
       {error && <div className="alert alert--error">{error}</div>}
 
       {showCreateForm && (
-        <TournamentCreateForm
+        <TournamentCreateWizard
           players={players}
           isSubmitting={isSaving}
           onSubmit={handleCreate}

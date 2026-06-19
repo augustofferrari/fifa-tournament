@@ -5,7 +5,11 @@ import {
   MIN_TOURNAMENT_PLAYERS,
   ValidationError,
   ValidationMessages,
+  validateTournamentFormatConfig,
+  validateTournamentFormatPlayerRules,
 } from '@shared/validation'
+import type { Tournament } from '@shared/types/tournament'
+import type { TournamentFormatConfig } from '@shared/types/tournament-format'
 import {
   DEFAULT_TOURNAMENT_SCORING,
   TOURNAMENT_STATUSES,
@@ -23,15 +27,24 @@ export function assertTournamentStatus(value: unknown, field = 'status'): Tourna
   return value as TournamentStatus
 }
 
-export function assertNonNegativeInteger(value: unknown, field: string): number {
-  return assertSharedNonNegativeInteger(value, `${field} must be a non-negative integer`)
+export interface ValidatedCreateTournamentInput extends TournamentFormatConfig {
+  name: string
+  pointsWin: number
+  pointsDraw: number
+  pointsLoss: number
 }
 
-export function validateCreateTournamentInput(input: CreateTournamentInput): Required<
-  Pick<CreateTournamentInput, 'name' | 'pointsWin' | 'pointsDraw' | 'pointsLoss'>
-> {
+export function validateCreateTournamentInput(input: CreateTournamentInput): ValidatedCreateTournamentInput {
+  const formatConfig = validateTournamentFormatConfig({
+    format: input.format,
+    playoffQualifiedCount: input.playoffQualifiedCount,
+    groupCount: input.groupCount,
+    playersPerGroup: input.playersPerGroup,
+  })
+
   return {
     name: assertRequiredField(input.name, ValidationMessages.tournamentNameRequired),
+    ...formatConfig,
     pointsWin:
       input.pointsWin !== undefined
         ? assertNonNegativeInteger(input.pointsWin, 'pointsWin')
@@ -45,6 +58,10 @@ export function validateCreateTournamentInput(input: CreateTournamentInput): Req
         ? assertNonNegativeInteger(input.pointsLoss, 'pointsLoss')
         : DEFAULT_TOURNAMENT_SCORING.pointsLoss,
   }
+}
+
+export function assertNonNegativeInteger(value: unknown, field: string): number {
+  return assertSharedNonNegativeInteger(value, `${field} must be a non-negative integer`)
 }
 
 export function validatePlayerIds(playerIds: unknown): string[] {
@@ -65,7 +82,13 @@ export function validatePlayerIds(playerIds: unknown): string[] {
   return [...new Set(validatedIds)]
 }
 
-export function validateTournamentPlayerSelection(playerIds: unknown): string[] {
+export function validateTournamentPlayerSelection(
+  playerIds: unknown,
+  tournament?: Pick<
+    Tournament,
+    'format' | 'playoffQualifiedCount' | 'groupCount' | 'playersPerGroup'
+  >,
+): string[] {
   const validatedIds = validatePlayerIds(playerIds)
 
   assertMinimumCount(
@@ -73,6 +96,10 @@ export function validateTournamentPlayerSelection(playerIds: unknown): string[] 
     MIN_TOURNAMENT_PLAYERS,
     ValidationMessages.tournamentMinPlayers,
   )
+
+  if (tournament) {
+    validateTournamentFormatPlayerRules(tournament.format, tournament, validatedIds.length)
+  }
 
   return validatedIds
 }

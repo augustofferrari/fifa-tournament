@@ -8,4 +8,7 @@ export const ValidationMessages = {
   goalsCannotBeNegative: 'Goals cannot be negative.',
   goalsMustBeWholeNumbers: 'Enter whole numbers of zero or more for both scores.',
   removedPlayer: 'Removed player',
+  knockoutRequiresWinner: 'Knockout matches require a winner',
+  finishedTournamentResultsLocked:
+    'This tournament is finished. Unlock results editing to change match scores.',
 } as const

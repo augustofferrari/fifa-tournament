@@ -4,6 +4,8 @@ import { IPC_CHANNELS } from '@shared/ipc/channels'
 import type {
   GenerateFixtureRequest,
   GenerateFixtureResponse,
+  GetLatestResultsRequest,
+  GetLatestResultsResponse,
   ListMatchesRequest,
   ListMatchesResponse,
   UpdateMatchResultRequest,
@@ -33,6 +35,14 @@ export function registerMatchHandlers(): void {
           request.homeGoals,
           request.awayGoals,
         ),
+      ),
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.MATCHES_GET_LATEST_RESULTS,
+    (_event, request: GetLatestResultsRequest = {}) =>
+      runIpcHandler<GetLatestResultsResponse>(() =>
+        getMatchRepository().getLatestResults(request.limit),
       ),
   )
 }

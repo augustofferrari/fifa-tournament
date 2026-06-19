@@ -16,3 +16,9 @@ export interface UpdateMatchResultRequest {
 }
 
 export type UpdateMatchResultResponse = Match
+
+export interface GetLatestResultsRequest {
+  limit?: number
+}
+
+export type GetLatestResultsResponse = import('./latest-match-result').LatestMatchResult[]

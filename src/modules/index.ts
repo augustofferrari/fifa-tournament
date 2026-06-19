@@ -9,6 +9,18 @@ export {
 } from './fixtures'
 export type { RoundRobinFixtureMatch, RoundRobinRound } from './fixtures'
 export {
+  HeadToHeadStatsService,
+  calculateHeadToHeadStats,
+  getHeadToHeadStatsService,
+} from './head-to-head'
+export type { CalculateHeadToHeadStatsInput } from './head-to-head'
+export {
+  TournamentAwardsService,
+  calculateTournamentAwards,
+  getTournamentAwardsService,
+} from './tournament-awards'
+export type { CalculateTournamentAwardsInput } from './tournament-awards'
+export {
   HistoricalStatsRepository,
   calculateHistoricalStats,
   getHistoricalStatsRepository,

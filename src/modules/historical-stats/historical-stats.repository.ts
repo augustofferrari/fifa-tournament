@@ -1,12 +1,20 @@
 import type Database from 'better-sqlite3'
 import { getDatabase } from '@database'
-import type { Match, MatchStatus } from '@shared/types/match'
+import {
+  mapRowToMatch,
+  MATCH_SELECT_COLUMNS,
+  type MatchRow,
+} from '@modules/matches/match.mapper'
 import type {
   HistoricalStatsSnapshot,
   TournamentPlayerEntry,
 } from '@shared/types/historical-stats'
 import type { Player } from '@shared/types/player'
-import type { Tournament, TournamentStatus } from '@shared/types/tournament'
+import {
+  mapRowToTournament,
+  TOURNAMENT_SELECT_COLUMNS,
+  type TournamentRow,
+} from '@modules/tournaments/tournament.mapper'
 import { calculateHistoricalStats } from './historical-stats.calculator'
 
 interface PlayerRow {
@@ -19,33 +27,9 @@ interface PlayerRow {
   updated_at: string
 }
 
-interface TournamentRow {
-  id: string
-  name: string
-  status: string
-  points_win: number
-  points_draw: number
-  points_loss: number
-  created_at: string
-  updated_at: string
-}
-
 interface TournamentPlayerRow {
   tournament_id: string
   player_id: string
-}
-
-interface MatchRow {
-  id: string
-  tournament_id: string
-  round_number: number
-  home_player_id: string
-  away_player_id: string
-  home_goals: number | null
-  away_goals: number | null
-  status: string
-  created_at: string
-  updated_at: string
 }
 
 function mapRowToPlayer(row: PlayerRow): Player {
@@ -55,34 +39,6 @@ function mapRowToPlayer(row: PlayerRow): Player {
     nickname: row.nickname,
     teamName: row.team_name,
     photoPath: row.photo_path,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-function mapRowToTournament(row: TournamentRow): Tournament {
-  return {
-    id: row.id,
-    name: row.name,
-    status: row.status as TournamentStatus,
-    pointsWin: row.points_win,
-    pointsDraw: row.points_draw,
-    pointsLoss: row.points_loss,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-function mapRowToMatch(row: MatchRow): Match {
-  return {
-    id: row.id,
-    tournamentId: row.tournament_id,
-    roundNumber: row.round_number,
-    homePlayerId: row.home_player_id,
-    awayPlayerId: row.away_player_id,
-    homeGoals: row.home_goals,
-    awayGoals: row.away_goals,
-    status: row.status as MatchStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -105,7 +61,7 @@ export class HistoricalStatsRepository {
     const tournaments = (
       this.db
         .prepare(
-          `SELECT id, name, status, points_win, points_draw, points_loss, created_at, updated_at
+          `SELECT ${TOURNAMENT_SELECT_COLUMNS}
            FROM tournaments`,
         )
         .all() as TournamentRow[]
@@ -125,8 +81,7 @@ export class HistoricalStatsRepository {
     const matches = (
       this.db
         .prepare(
-          `SELECT id, tournament_id, round_number, home_player_id, away_player_id,
-                  home_goals, away_goals, status, created_at, updated_at
+          `SELECT ${MATCH_SELECT_COLUMNS}
            FROM matches`,
         )
         .all() as MatchRow[]

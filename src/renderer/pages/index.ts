@@ -1,4 +1,5 @@
 export { DashboardPage } from './DashboardPage'
+export { HeadToHeadPage } from './HeadToHeadPage'
 export { HistoricalRankingPage } from './HistoricalRankingPage'
 export { PlayersPage } from './PlayersPage'
 export { SettingsPage } from './SettingsPage'

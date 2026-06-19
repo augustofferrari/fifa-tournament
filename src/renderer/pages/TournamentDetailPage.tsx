@@ -4,13 +4,27 @@ import { ApiError } from '@shared/ipc/errors'
 import type { Match } from '@shared/types/match'
 import type { Player } from '@shared/types/player'
 import type { Tournament } from '@shared/types/tournament'
+import { getTournamentFormatLabel, TournamentFormat } from '@shared/types/tournament-format'
+import { TournamentPhaseType, type TournamentPhase } from '@shared/types/tournament-phase'
 import { createRemovedPlayer, getPlayerDisplayName } from '@shared/validation'
 import { PlayerPhoto } from '@renderer/components/players/PlayerPhoto'
 import {
+  BracketView,
+  GroupStageView,
   MatchResultModal,
   StandingsTable,
+  TournamentAwardsSection,
   TournamentMatches,
+  TournamentPhaseActions,
+  startKnockoutOnlyTournament,
+  TournamentPhaseTabs,
+  isPhaseReadOnly,
 } from '@renderer/components/tournaments'
+import { getKnockoutOnlyStartHint } from '@renderer/components/tournaments/tournament-phase-actions.utils'
+
+function isBracketPhase(phaseType: TournamentPhaseType): boolean {
+  return phaseType === TournamentPhaseType.PLAYOFF || phaseType === TournamentPhaseType.KNOCKOUT
+}
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -28,15 +42,28 @@ function statusLabel(status: Tournament['status']): string {
   return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
+function resolveInitialPhaseId(phases: TournamentPhase[]): string | null {
+  const activePhase = phases.find((phase) => phase.status === 'active')
+
+  if (activePhase) {
+    return activePhase.id
+  }
+
+  return phases[0]?.id ?? null
+}
+
 export function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
+  const [phases, setPhases] = useState<TournamentPhase[]>([])
   const [matches, setMatches] = useState<Match[]>([])
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSavingResult, setIsSavingResult] = useState(false)
+  const [isUpdatingResultsLock, setIsUpdatingResultsLock] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const playersById = useMemo(() => {
@@ -55,6 +82,19 @@ export function TournamentDetailPage() {
     return map
   }, [players, matches])
 
+  const selectedPhase = useMemo(
+    () => phases.find((phase) => phase.id === selectedPhaseId) ?? null,
+    [phases, selectedPhaseId],
+  )
+
+  const phaseMatches = useMemo(() => {
+    if (!selectedPhase) {
+      return matches
+    }
+
+    return matches.filter((match) => match.phaseId === selectedPhase.id)
+  }, [matches, selectedPhase])
+
   const loadTournament = useCallback(async () => {
     if (!id) {
       setError('Tournament not found')
@@ -65,11 +105,13 @@ export function TournamentDetailPage() {
     setError(null)
 
     try {
-      const [tournamentData, tournamentPlayers, tournamentMatches] = await Promise.all([
-        window.api.tournaments.getById(id),
-        window.api.tournaments.getPlayers(id),
-        window.api.matches.list({ tournamentId: id }),
-      ])
+      const [tournamentData, tournamentPlayers, tournamentPhases, tournamentMatches] =
+        await Promise.all([
+          window.api.tournaments.getById(id),
+          window.api.tournaments.getPlayers(id),
+          window.api.tournaments.getPhases(id),
+          window.api.matches.list({ tournamentId: id }),
+        ])
 
       if (!tournamentData) {
         setError('Tournament not found')
@@ -78,7 +120,15 @@ export function TournamentDetailPage() {
 
       setTournament(tournamentData)
       setPlayers(tournamentPlayers)
+      setPhases(tournamentPhases)
       setMatches(tournamentMatches)
+      setSelectedPhaseId((current) => {
+        if (current && tournamentPhases.some((phase) => phase.id === current)) {
+          return current
+        }
+
+        return resolveInitialPhaseId(tournamentPhases)
+      })
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -108,6 +158,25 @@ export function TournamentDetailPage() {
     }
   }
 
+  async function handleStartKnockoutOnlyTournament() {
+    if (!id) {
+      return
+    }
+
+    setIsGenerating(true)
+    setError(null)
+
+    try {
+      const knockoutPhaseId = await startKnockoutOnlyTournament(id, players)
+      await loadTournament()
+      setSelectedPhaseId(knockoutPhaseId)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   async function handleSaveMatchResult(homeGoals: number, awayGoals: number) {
     if (!selectedMatch) {
       return
@@ -126,12 +195,39 @@ export function TournamentDetailPage() {
     }
   }
 
+  async function handleToggleResultsUnlocked() {
+    if (!tournament) {
+      return
+    }
+
+    setIsUpdatingResultsLock(true)
+    setError(null)
+
+    try {
+      const updated = await window.api.tournaments.setResultsUnlocked(
+        tournament.id,
+        !tournament.resultsUnlocked,
+      )
+      setTournament(updated)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setIsUpdatingResultsLock(false)
+    }
+  }
+
   const selectedHomePlayerName = selectedMatch
     ? getPlayerDisplayName(playersById, selectedMatch.homePlayerId)
     : ''
   const selectedAwayPlayerName = selectedMatch
     ? getPlayerDisplayName(playersById, selectedMatch.awayPlayerId)
     : ''
+
+  const isSelectedPhaseReadOnly =
+    tournament && selectedPhase ? isPhaseReadOnly(tournament, selectedPhase) : false
+  const knockoutOnlyStartHint = tournament
+    ? getKnockoutOnlyStartHint(tournament, matches)
+    : null
 
   if (isLoading) {
     return (
@@ -169,7 +265,33 @@ export function TournamentDetailPage() {
         <Link className="btn btn--ghost" to="/tournaments">
           Back to Tournaments
         </Link>
-        {tournament.status === 'draft' && (
+        {tournament.status === 'finished' && (
+          <button
+            className="btn btn--ghost"
+            type="button"
+            onClick={() => void handleToggleResultsUnlocked()}
+            disabled={isUpdatingResultsLock}
+          >
+            {isUpdatingResultsLock
+              ? 'Updating…'
+              : tournament.resultsUnlocked
+                ? 'Lock results'
+                : 'Unlock results'}
+          </button>
+        )}
+        {tournament.status === 'draft' && tournament.format === TournamentFormat.KNOCKOUT_ONLY && (
+          <button
+            className="btn btn--primary"
+            type="button"
+            onClick={() => void handleStartKnockoutOnlyTournament()}
+            disabled={isGenerating || players.length < 2}
+          >
+            {isGenerating ? 'Starting…' : 'Start Tournament'}
+          </button>
+        )}
+        {tournament.status === 'draft' &&
+          tournament.format !== TournamentFormat.GROUPS_KNOCKOUT &&
+          tournament.format !== TournamentFormat.KNOCKOUT_ONLY && (
           <button
             className="btn btn--primary"
             type="button"
@@ -183,9 +305,16 @@ export function TournamentDetailPage() {
 
       {error && <div className="alert alert--error">{error}</div>}
 
+      {knockoutOnlyStartHint && (
+        <p className="tournament-detail__phase-notice">{knockoutOnlyStartHint}</p>
+      )}
+
       <header className="page-header">
         <div className="tournament-detail__heading">
           <h1 className="page-header__title">{tournament.name}</h1>
+          <span className="tournament-detail__format-badge">
+            {getTournamentFormatLabel(tournament.format)}
+          </span>
           <span className={`status-badge status-badge--${tournament.status}`}>
             {statusLabel(tournament.status)}
           </span>
@@ -218,30 +347,109 @@ export function TournamentDetailPage() {
         )}
       </div>
 
-      {matches.length > 0 && id && (
-        <StandingsTable tournamentId={id} refreshTrigger={matches} />
+      {phases.length > 0 && selectedPhaseId && (
+        <TournamentPhaseTabs
+          phases={phases}
+          selectedPhaseId={selectedPhaseId}
+          onSelectPhase={setSelectedPhaseId}
+        />
       )}
 
-      <TournamentMatches
+      {selectedPhase && isSelectedPhaseReadOnly && (
+        <p className="tournament-detail__phase-notice">
+          {tournament.status === 'finished' && !tournament.resultsUnlocked
+            ? 'This tournament is finished. Unlock results editing to change match scores.'
+            : `This phase is ${selectedPhase.status}. Match results are read-only.`}
+        </p>
+      )}
+
+      <TournamentPhaseActions
+        tournament={tournament}
+        phases={phases}
+        selectedPhase={selectedPhase}
         matches={matches}
-        playersById={playersById}
-        onSelectMatch={setSelectedMatch}
+        onRefresh={loadTournament}
+        onPhaseChange={setSelectedPhaseId}
+        onError={setError}
       />
 
-      {tournament.status === 'draft' && matches.length === 0 && (
+      {selectedPhase?.phaseType === TournamentPhaseType.GROUP_STAGE && id && (
+        <GroupStageView
+          tournament={tournament}
+          players={players}
+          playersById={playersById}
+          matches={phaseMatches}
+          readOnly={isSelectedPhaseReadOnly}
+          onRefresh={loadTournament}
+        />
+      )}
+
+      {selectedPhase?.phaseType === TournamentPhaseType.ROUND_ROBIN && id && (
+        <StandingsTable
+          tournamentId={id}
+          phaseId={selectedPhase.id}
+          refreshTrigger={matches}
+        />
+      )}
+
+      {selectedPhase && isBracketPhase(selectedPhase.phaseType) && (
+        <BracketView
+          phase={selectedPhase}
+          playersById={playersById}
+          readOnly={isSelectedPhaseReadOnly}
+          onRefresh={loadTournament}
+          refreshTrigger={matches}
+        />
+      )}
+
+      {matches.length > 0 &&
+        id &&
+        (!selectedPhase ||
+          selectedPhase.orderIndex ===
+            Math.max(...phases.map((phase) => phase.orderIndex))) && (
+          <TournamentAwardsSection tournamentId={id} refreshTrigger={matches} />
+        )}
+
+      {selectedPhase &&
+        !isBracketPhase(selectedPhase.phaseType) &&
+        selectedPhase.phaseType !== TournamentPhaseType.GROUP_STAGE && (
+        <TournamentMatches
+          matches={phaseMatches}
+          playersById={playersById}
+          onSelectMatch={setSelectedMatch}
+          readOnly={isSelectedPhaseReadOnly}
+        />
+      )}
+
+      {tournament.status === 'draft' &&
+        matches.length === 0 &&
+        tournament.format !== TournamentFormat.GROUPS_KNOCKOUT && (
         <div className="page__empty">
-          Generate the fixture to create round robin matches for this tournament.
+          Generate the fixture to create matches for this tournament.
         </div>
       )}
 
-      <MatchResultModal
-        match={selectedMatch}
-        homePlayerName={selectedHomePlayerName}
-        awayPlayerName={selectedAwayPlayerName}
-        isSaving={isSavingResult}
-        onClose={() => setSelectedMatch(null)}
-        onSave={handleSaveMatchResult}
-      />
+      {selectedPhase &&
+        !isBracketPhase(selectedPhase.phaseType) &&
+        selectedPhase.phaseType !== TournamentPhaseType.GROUP_STAGE &&
+        phaseMatches.length === 0 &&
+        matches.length > 0 && (
+        <div className="page__empty">No matches in this phase yet.</div>
+      )}
+
+      {selectedPhase &&
+        !isBracketPhase(selectedPhase.phaseType) &&
+        selectedPhase.phaseType !== TournamentPhaseType.GROUP_STAGE && (
+        <MatchResultModal
+          match={selectedMatch}
+          homePlayerName={selectedHomePlayerName}
+          awayPlayerName={selectedAwayPlayerName}
+          phaseType={selectedPhase.phaseType}
+          isSaving={isSavingResult}
+          onClose={() => setSelectedMatch(null)}
+          onSave={handleSaveMatchResult}
+        />
+      )}
     </section>
   )
 }

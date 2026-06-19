@@ -3,10 +3,17 @@ import type { StandingRow } from '@shared/types/standings'
 
 interface StandingsTableProps {
   tournamentId: string
+  phaseId?: string
+  title?: string
   refreshTrigger?: unknown
 }
 
-export function StandingsTable({ tournamentId, refreshTrigger }: StandingsTableProps) {
+export function StandingsTable({
+  tournamentId,
+  phaseId,
+  title = 'Standings',
+  refreshTrigger,
+}: StandingsTableProps) {
   const [rows, setRows] = useState<StandingRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -17,7 +24,7 @@ export function StandingsTable({ tournamentId, refreshTrigger }: StandingsTableP
       setIsLoading(true)
 
       try {
-        const data = await window.api.tournaments.getStandings(tournamentId)
+        const data = await window.api.tournaments.getStandings(tournamentId, phaseId)
 
         if (!cancelled) {
           setRows(data)
@@ -34,12 +41,12 @@ export function StandingsTable({ tournamentId, refreshTrigger }: StandingsTableP
     return () => {
       cancelled = true
     }
-  }, [tournamentId, refreshTrigger])
+  }, [tournamentId, phaseId, refreshTrigger])
 
   if (isLoading && rows.length === 0) {
     return (
       <div className="card tournament-detail__standings">
-        <h2 className="tournament-detail__section-title">Standings</h2>
+        <h2 className="tournament-detail__section-title">{title}</h2>
         <p className="tournament-detail__empty">Loading standings…</p>
       </div>
     )
@@ -51,7 +58,7 @@ export function StandingsTable({ tournamentId, refreshTrigger }: StandingsTableP
 
   return (
     <div className="card tournament-detail__standings">
-      <h2 className="tournament-detail__section-title">Standings</h2>
+      <h2 className="tournament-detail__section-title">{title}</h2>
 
       <div className="table-wrap">
         <table className="table standings-table">

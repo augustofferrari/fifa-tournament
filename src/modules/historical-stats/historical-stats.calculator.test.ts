@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { Match } from '@shared/types/match'
+import { EMPTY_MATCH_PHASE_FIELDS } from '@shared/types/match'
 import type { TournamentPlayerEntry } from '@shared/types/historical-stats'
 import type { Player } from '@shared/types/player'
 import type { Tournament } from '@shared/types/tournament'
+import { DEFAULT_TOURNAMENT_FORMAT_CONFIG } from '@shared/types/tournament-format'
 import { calculateHistoricalStats } from './historical-stats.calculator'
 
 const tournamentA: Tournament = {
   id: 't1',
   name: 'Cup A',
   status: 'active',
+  ...DEFAULT_TOURNAMENT_FORMAT_CONFIG,
   pointsWin: 3,
   pointsDraw: 1,
   pointsLoss: 0,
@@ -20,6 +23,7 @@ const tournamentB: Tournament = {
   id: 't2',
   name: 'Cup B',
   status: 'active',
+  ...DEFAULT_TOURNAMENT_FORMAT_CONFIG,
   pointsWin: 2,
   pointsDraw: 1,
   pointsLoss: 0,
@@ -66,6 +70,7 @@ function playedMatch(
   awayGoals: number,
 ): Match {
   return {
+    ...EMPTY_MATCH_PHASE_FIELDS,
     id,
     tournamentId,
     roundNumber: 1,
@@ -86,6 +91,7 @@ function scheduledMatch(
   awayPlayerId: string,
 ): Match {
   return {
+    ...EMPTY_MATCH_PHASE_FIELDS,
     id,
     tournamentId,
     roundNumber: 1,
@@ -202,6 +208,7 @@ describe('calculateHistoricalStats', () => {
       id: 't3',
       name: 'Cup C',
       status: 'active',
+      ...DEFAULT_TOURNAMENT_FORMAT_CONFIG,
       pointsWin: 3,
       pointsDraw: 1,
       pointsLoss: 0,

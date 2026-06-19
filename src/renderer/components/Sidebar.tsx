@@ -11,6 +11,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Players', path: '/players' },
   { label: 'Tournaments', path: '/tournaments' },
   { label: 'Ranking', path: '/ranking' },
+  { label: 'Head to Head', path: '/head-to-head' },
   { label: 'Stickers', path: '/stickers' },
   { label: 'Settings', path: '/settings' },
 ]

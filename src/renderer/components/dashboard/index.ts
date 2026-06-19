@@ -1,0 +1,1 @@
+export { LatestResultsWidget } from './LatestResultsWidget'
